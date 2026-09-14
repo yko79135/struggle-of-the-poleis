@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Struggle of the Nations: 1939–1945</title>
+<style>
+:root{--bg:#0e1217;--panel:#171d24;--panel2:#202834;--line:#394656;--text:#edf3f8;--muted:#aeb9c4;--gold:#f2c14e;--sea:#aec7d5;--land:#d9d3bc;--ok:#71d294;--bad:#ef7a73}
+*{box-sizing:border-box} body{margin:0;background:#0d1116;color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
+#app{display:grid;grid-template-columns:minmax(760px,1fr) 390px;min-height:100vh}
+#main{padding:12px;display:flex;flex-direction:column;gap:9px;min-width:0}
+#side{padding:12px;background:#131920;border-left:1px solid var(--line);overflow:auto;max-height:100vh}
+.top{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);padding:10px 13px;border-radius:12px}
+h1{font-size:21px;margin:0}.sub{font-size:11px;color:var(--muted);margin-top:2px}
+.badges{display:flex;gap:6px;flex-wrap:wrap}.badge{padding:6px 9px;border:1px solid var(--line);background:#222a34;border-radius:999px;font-size:11px}
+#mapwrap{position:relative;background:linear-gradient(#9bb9c8,#789aae);border:1px solid #536674;border-radius:14px;overflow:hidden;min-height:680px}
+#map{width:100%;height:100%;display:block}
+.hex{stroke:#3b4650;stroke-width:2;cursor:pointer;transition:.1s}.hex:hover{stroke:white;stroke-width:3}.hex.target{stroke:#6effa3;stroke-width:5}.hex.capital{stroke:#ffe08a;stroke-width:3}
+.label{font-size:9px;font-weight:800;fill:#111;text-anchor:middle;pointer-events:none}.tiny{font-size:7px}.seaLabel{fill:#163342}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:9px}.panel h3{font-size:14px;margin:0 0 8px}
+button,select,input{font:inherit}button{background:#27313d;color:#fff;border:1px solid #465566;border-radius:8px;padding:8px 9px;font-weight:700;cursor:pointer}button:hover{filter:brightness(1.12)}button:disabled{opacity:.35;cursor:not-allowed}.primary{background:#285f9b}.danger{background:#743335}.good{background:#286640}
+.actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.actions button{font-size:12px}
+.statrow{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}.stat{background:#202833;padding:7px;border-radius:8px}.stat b{display:block;font-size:17px}.stat span{font-size:10px;color:var(--muted)}
+.help{font-size:11px;color:var(--muted);line-height:1.45}.status{font-size:12px;background:#0e141a;padding:8px;border-radius:8px;line-height:1.4}
+.log{height:165px;overflow:auto;background:#0c1116;border-radius:8px;padding:7px;font-size:11px;line-height:1.4}.log div{border-bottom:1px solid #1f2933;padding:2px}
+.perk{background:#202833;padding:7px;border-radius:8px;margin:5px 0}.perk.owned{outline:1px solid var(--ok)}.perk b{font-size:12px}
+.modalLayer{position:absolute;inset:0;background:#070a0edb;display:flex;align-items:center;justify-content:center;z-index:20}.modal{background:#161c23;border:1px solid #4a5968;border-radius:15px;width:min(720px,92%);max-height:92%;overflow:auto;padding:18px}.modal h2{margin:0 0 6px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.frow{padding:9px;background:#202833;border-radius:9px}.frow label{display:flex;gap:7px;align-items:center;font-weight:700}.frow small{display:block;color:#b6c1cc;margin:4px 0 0 22px;line-height:1.3}
+.startbar{display:flex;gap:8px;margin-top:12px;align-items:center}.startbar select{background:#222b35;color:#fff;border:1px solid #495769;border-radius:8px;padding:8px}
+.legend{display:flex;gap:7px;flex-wrap:wrap;font-size:10px}.legend span{display:flex;align-items:center;gap:4px}.dot{width:11px;height:11px;border-radius:50%;display:inline-block;border:1px solid #fff7}
+.modalBtns{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+table{width:100%;border-collapse:collapse;font-size:11px}td,th{padding:5px;border-bottom:1px solid #2b3642;text-align:left}
+#scoreList{font-size:11px;line-height:1.5}
+.rulebox details{margin:5px 0}.rulebox summary{cursor:pointer;font-weight:700;font-size:12px}.rulebox p,.rulebox li{font-size:11px;color:#c0c9d2;line-height:1.45}
+@media(max-width:1000px){#app{grid-template-columns:1fr}#side{max-height:none;border-left:0;border-top:1px solid var(--line)}#mapwrap{min-height:650px}}
+</style>
+</head>
+<body>
+<div id="app">
+ <section id="main">
+  <div class="top">
+   <div><h1>Struggle of the Nations: 1939–1945</h1><div class="sub">A Struggle of the Poleis rules-engine adaptation • EXPAND • NEGOTIATE • DEVELOP • CONQUER • RESIST</div></div>
+   <div class="badges"><span class="badge">Round <b id="round">1</b></span><span class="badge">Turn <b id="who">—</b></span><span class="badge">Global <b id="global">0</b></span></div>
+  </div>
+  <div id="mapwrap">
+   <svg id="map" viewBox="0 0 1320 760"></svg>
+   <div id="setup" class="modalLayer"><div class="modal">
+    <h2>Set Up the War</h2>
+    <div class="help">Choose participating powers. Check AI for computer-controlled factions. Like Poleis, each active human power receives exactly <b>one core action roll per turn</b>.</div>
+    <div id="factions" class="grid" style="margin-top:10px"></div>
+    <div class="startbar">
+      <label>AI difficulty <select id="difficulty"><option>Easy</option><option selected>Normal</option><option>Hard</option></select></label>
+      <button id="start" class="primary">Start / Restart Game</button>
+    </div>
+   </div></div>
+   <div id="perkModal" class="modalLayer" style="display:none"><div class="modal"><h2 id="perkTitle">Choose an upgrade</h2><div id="perkChoices" class="modalBtns"></div></div></div>
+   <div id="peaceModal" class="modalLayer" style="display:none"><div class="modal"><h2>Propose Peace Treaty</h2><div class="help">One free proposal per turn. An accepted treaty lasts 15 global turns and prevents the partners from attacking each other.</div><div id="peaceChoices" class="modalBtns"></div><div class="modalBtns"><button onclick="closePeace()">Cancel</button></div></div></div>
+  </div>
+  <div class="legend" id="legend"></div>
+ </section>
+ <aside id="side">
+   <div class="panel"><h3>Current Power</h3><div id="nation"></div></div>
+   <div class="panel"><h3>Core Action</h3>
+    <div class="actions">
+      <button id="conquer">Conquer</button><button id="expand">Expand</button>
+      <button id="sail">Sail</button><button id="tech">Technology</button>
+      <button id="influence">Influence</button><button id="peace">Peace Treaty</button>
+      <button id="cancel">Cancel Mode</button><button id="end" class="primary">End Turn</button>
+    </div>
+    <div id="status" class="status" style="margin-top:8px">Start the game.</div>
+   </div>
+   <div class="panel"><h3>Selected Hex</h3><div id="hexInfo" class="help">Click a hex.</div></div>
+   <div class="panel"><h3>Development</h3><div id="perks"></div></div>
+   <div class="panel"><h3>Scores</h3><div id="scoreList"></div></div>
+   <div class="panel rulebox"><h3>Quick Rules</h3>
+    <details open><summary>Official turn rule</summary><p>Optional peace first. Then choose exactly one core action: Conquer, Expand, Sail, Technology, or Influence. Spend territorial action points by clicking legal adjacent hexes. End Turn discards unused points.</p></details>
+    <details><summary>Scoring</summary><p>Land: 2 VP each. Sea: 1 VP each. Technology: Technology ÷ 2 VP. Influence: Influence ÷ 4 VP. Capturing a capital: +10 VP. Recurring perks and faction abilities may add more.</p></details>
+    <details><summary>Capital protection</summary><p>Active capitals cannot be conquered during Rounds 1–4. Protection ends at the start of Round 5.</p></details>
+    <details><summary>Map scale</summary><p>Each land hex is a strategic region, not a literal province. Sea hexes represent operational sea zones. Newly captured hexes can immediately open the next adjacent target, preserving Poleis-style chaining.</p></details><details><summary>Resistance</summary><p>A power with no land enters Resistance Mode. On its turn it rolls d4; 4+ restores its capital, awards +10 VP, and grants two turns of special immunity.</p></details>
+   </div>
+   <div class="panel"><h3>Game Log</h3><div id="log" class="log"></div></div>
+ </aside>
+</div>
+<script>
+const P={
+ GER:{name:"Germany",color:"#70757a",ability:"Blitz Doctrine — begins with Conquer d6 instead of d4. Stronger Military upgrades it to d8.",cap:"berlin",axis:true},
+ UK:{name:"United Kingdom",color:"#b4525c",ability:"Maritime Empire — begins with Naval Power. End turn: +0.25 VP per owned sea hex.",cap:"britain"},
+ USSR:{name:"Soviet Union",color:"#b8483f",ability:"Strategic Depth — begins with Expand d8 instead of d6.",cap:"moscow"},
+ USA:{name:"United States",color:"#5278b7",ability:"Arsenal of Democracy — +1 to every Technology roll and +1 to every Influence roll.",cap:"usa"},
+ ITA:{name:"Italy",color:"#6c9a68",ability:"Mare Nostrum — begins with Naval Power. Every Conquer roll also creates 2 sea-only conquest points.",cap:"rome",axis:true},
+ JPN:{name:"Japan",color:"#e0ddd2",text:"#111",ability:"Imperial Navy — begins with Naval Power and +1 to all Resistance rolls.",cap:"japan",axis:true},
+ FRA:{name:"France",color:"#708ad0",ability:"Entente — while a peace treaty with Britain exists, Conquer is at least d6; with Stronger Military, +1 conquest point.",cap:"paris"},
+ CHN:{name:"China",color:"#c5a657",ability:"People's Resistance — +1 to all Resistance rolls and +1 Influence after each non-capital conquest.",cap:"chongqing"},
+ NEU:{name:"Uncommitted",color:"#d8d1b8",cap:null}
+};
+
+const techPerks=[
+ {id:"naval",name:"Naval Power",desc:"Unlocks Sail d8 and conquest of enemy sea hexes."},
+ {id:"military",name:"Stronger Military",desc:"Conquer die d4→d6; Germany d6→d8."},
+ {id:"intel",name:"Intelligence",desc:"After every Technology roll, reroll once and keep the higher result."},
+ {id:"infra",name:"Industrial Infrastructure",desc:"End turn: +0.25 VP per owned land hex."},
+ {id:"air",name:"Air Power",desc:"+1 to every conquest total."}
+];
+const infPerks=[
+ {id:"diplomacy",name:"Diplomatic Immunity",desc:"Adds 3 turns of immunity. You normally cannot attack while it lasts. Repeatable."},
+ {id:"warbonds",name:"War Bonds",desc:"At each new 20-Influence level, gain +1 permanent VP.",once:true},
+ {id:"trade",name:"Trade & Convoys",desc:"End turn: +0.5 VP per owned sea hex.",once:true},
+ {id:"occupation",name:"Occupation Policy",desc:"After each successful non-capital conquest, gain +1 Influence.",once:true}
+];
+
+const H={
+ "usa":["Eastern USA",-8,1,"L","USA",1],
+ "usa_mid":["Central USA",-8,0,"L","USA"],
+ "usa_south":["Southern USA",-8,2,"L","USA"],
+ "canada":["Eastern Canada",-7,-1,"L",""],
+ "atl_w":["W. Atlantic",-6,0,"S","USA"],
+ "atl_mid":["Mid Atlantic",-5,0,"S",""],
+ "atl_n":["N. Atlantic",-5,-1,"S","UK"],
+ "atl_e":["E. Atlantic",-4,0,"S","UK"],
+ "atl_s":["S. Atlantic",-5,2,"S",""],
+ "ireland":["Ireland",-3,-1,"L",""],
+ "britain":["Britain",-2,-1,"L","UK",1],
+ "scotland":["Scotland",-2,-2,"L","UK"],
+ "channel":["English Channel",-2,0,"S","UK"],
+ "northsea":["North Sea",-1,-2,"S","UK"],
+ "norway":["Norway",0,-4,"L",""],
+ "sweden":["Sweden",1,-4,"L",""],
+ "finland":["Finland",2,-4,"L",""],
+ "denmark":["Denmark",0,-3,"L",""],
+ "baltic":["Baltic Sea",1,-3,"S",""],
+ "low":["Low Countries",-1,-1,"L",""],
+ "normandy":["Normandy",-1,0,"L","FRA"],
+ "paris":["Paris",0,0,"L","FRA",1],
+ "alsace":["Alsace",1,0,"L","FRA"],
+ "frsouth":["S. France",0,1,"L","FRA"],
+ "bordeaux":["Bordeaux",-1,1,"L","FRA"],
+ "spain_n":["N. Spain",-1,2,"L",""],
+ "spain_s":["S. Spain",-1,3,"L",""],
+ "portugal":["Portugal",-2,3,"L",""],
+ "bay":["Bay of Biscay",-2,1,"S",""],
+ "ruhr":["Ruhr",1,-1,"L","GER"],
+ "berlin":["Berlin",2,-1,"L","GER",1],
+ "bavaria":["Bavaria",2,0,"L","GER"],
+ "eastprussia":["East Prussia",3,-2,"L","GER"],
+ "bohemia":["Bohemia",3,0,"L",""],
+ "austria":["Austria",3,1,"L",""],
+ "poland_w":["W. Poland",3,-1,"L",""],
+ "poland_e":["E. Poland",4,-1,"L",""],
+ "slovakia":["Slovakia",4,0,"L",""],
+ "italy_n":["N. Italy",1,1,"L","ITA"],
+ "rome":["Rome",1,2,"L","ITA",1],
+ "sicily":["Sicily",1,3,"L","ITA"],
+ "adriatic":["Adriatic Sea",2,2,"S","ITA"],
+ "yugo":["Yugoslavia",3,2,"L",""],
+ "greece":["Greece",3,3,"L",""],
+ "albania":["Albania",2,3,"L",""],
+ "hungary":["Hungary",4,1,"L",""],
+ "romania":["Romania",5,1,"L",""],
+ "bulgaria":["Bulgaria",4,2,"L",""],
+ "blacksea":["Black Sea",5,2,"S",""],
+ "baltstates":["Baltic States",4,-2,"L",""],
+ "leningrad":["Leningrad",5,-3,"L","USSR"],
+ "belarus":["Belarus",5,-1,"L","USSR"],
+ "moscow":["Moscow",6,-2,"L","USSR",1],
+ "smolensk":["Smolensk",6,-1,"L","USSR"],
+ "ukraine":["Ukraine",5,0,"L","USSR"],
+ "kiev":["Kiev",6,0,"L","USSR"],
+ "volga":["Volga",7,-1,"L","USSR"],
+ "stalingrad":["Stalingrad",7,0,"L","USSR"],
+ "caucasus":["Caucasus",6,1,"L","USSR"],
+ "urals":["Urals",8,-2,"L","USSR"],
+ "kazakh":["Kazakhstan",8,-1,"L","USSR"],
+ "westmed":["W. Mediterranean",0,3,"S",""],
+ "centralmed":["Central Med",2,4,"S","ITA"],
+ "eastmed":["E. Mediterranean",4,4,"S","UK"],
+ "morocco":["Morocco",-1,4,"L",""],
+ "algeria":["Algeria",0,4,"L","FRA"],
+ "tunisia":["Tunisia",1,4,"L","FRA"],
+ "libya":["Libya",2,5,"L","ITA"],
+ "egypt":["Egypt / Suez",4,5,"L","UK"],
+ "levant":["Levant",5,4,"L","UK"],
+ "turkey":["Turkey",5,3,"L",""],
+ "iraq":["Iraq",6,3,"L","UK"],
+ "iran":["Iran",7,2,"L",""],
+ "redsea":["Red Sea",5,5,"S","UK"],
+ "indian":["Indian Ocean",6,5,"S","UK"],
+ "arabian":["Arabian Sea",7,4,"S","UK"],
+ "india":["India",8,3,"L","UK"],
+ "burma":["Burma",9,3,"L","UK"],
+ "seasia":["Southeast Asia",10,3,"L",""],
+ "southchina":["S. China Sea",10,2,"S",""],
+ "china_w":["W. China",8,1,"L","CHN"],
+ "chongqing":["Chongqing",9,1,"L","CHN",1],
+ "china_n":["N. China",9,0,"L","CHN"],
+ "china_e":["E. China",10,1,"L","CHN"],
+ "manchuria":["Manchuria",10,-1,"L","JPN"],
+ "korea":["Korea",11,-1,"L","JPN"],
+ "japan":["Japan",12,-1,"L","JPN",1],
+ "yellowsea":["Yellow Sea",11,0,"S","JPN"],
+ "westpac":["W. Pacific",12,0,"S","JPN"],
+ "philippines":["Philippines",11,2,"L","USA"],
+ "pacific_s":["S. Pacific",12,2,"S","USA"]
+};
+const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]];
+const keyByQR={}; Object.entries(H).forEach(([id,h])=>keyByQR[h[1]+","+h[2]]=id);
+function neighbors(id){const h=H[id];return dirs.map(d=>keyByQR[(h[1]+d[0])+","+(h[2]+d[1])]).filter(Boolean)}
+const factions=Object.keys(P).filter(x=>x!=="NEU");
+let S={}, N={}, active=[], ai=new Set(), difficulty="Normal", idx=0, round=1, globalTurn=0, mode=null, pool=0, seaPool=0, actionUsed=false, selected=null, peaceUsed=false, treaties={}, gameStarted=false, pendingChoices=0;
+
+function initialState(){
+ S={}; Object.entries(H).forEach(([id,h])=>S[id]={owner:h[4]||"NEU"});
+ N={}; factions.forEach(f=>N[f]={tech:0,influence:0,perks:new Set(),misc:0,immunity:0,resist:false,resistImm:0,alive:true,rerollReady:true,lastWarBondLevel:0});
+ ["UK","ITA","JPN"].forEach(f=>N[f].perks.add("naval"));
+ treaties={}; idx=0;round=1;globalTurn=0;mode=null;pool=0;seaPool=0;actionUsed=false;selected=null;peaceUsed=false;pendingChoices=0;
+}
+initialState();
+
+function treatyKey(a,b){return [a,b].sort().join("-")}
+function treatyActive(a,b){return (treaties[treatyKey(a,b)]||0)>globalTurn}
+function hexPts(cx,cy,r=28){let p=[];for(let i=0;i<6;i++){let a=Math.PI/180*(60*i-30);p.push((cx+r*Math.cos(a))+","+(cy+r*Math.sin(a)))}return p.join(" ")}
+function pos(q,r){return [530+q*57,260+r*52+q*26]}
+function svg(tag,attrs){const e=document.createElementNS("http://www.w3.org/2000/svg",tag);Object.entries(attrs||{}).forEach(([k,v])=>e.setAttribute(k,v));return e}
+
+function draw(){
+ const m=document.getElementById("map");m.innerHTML="";
+ Object.entries(H).forEach(([id,h])=>{
+   const [x,y]=pos(h[1],h[2]); const st=S[id], own=st.owner, sea=h[3]==="S";
+   let fill=own==="NEU"?(sea?"#a9c8d7":"#d8d1b8"):P[own].color;
+   if(sea && own!=="NEU") fill=blend(fill,"#c7e0ec",.38);
+   let cl="hex"; if(h[5])cl+=" capital"; if(isTarget(id))cl+=" target";
+   const p=svg("polygon",{points:hexPts(x,y),fill,class:cl});p.onclick=()=>clickHex(id);m.appendChild(p);
+   const t=svg("text",{x,y:y-2,class:"label "+(sea?"seaLabel":"")});t.textContent=h[0];m.appendChild(t);
+   const s=svg("text",{x,y:y+11,class:"label tiny "+(sea?"seaLabel":"")});
+   let marks=h[5]?"★ ":""; if(st.owner!=="NEU" && !isConnected(id,st.owner) && !sea) marks+="⚠ ";
+   s.textContent=marks+(own==="NEU"?"":P[own].name.replace("United ","").replace("Soviet ",""));
+   m.appendChild(s);
+ });
+}
+function blend(hex1,hex2,t){const a=parseInt(hex1.slice(1),16),b=parseInt(hex2.slice(1),16),ar=a>>16,ag=a>>8&255,ab=a&255,br=b>>16,bg=b>>8&255,bb=b&255;return "#"+(((Math.round(ar*(1-t)+br*t)<<16)|(Math.round(ag*(1-t)+bg*t)<<8)|Math.round(ab*(1-t)+bb*t))).toString(16).padStart(6,"0")}
+function current(){return active[idx]}
+function isCapital(id){return !!H[id][5]}
+function owned(f,type=null){return Object.keys(S).filter(id=>S[id].owner===f && (!type||H[id][3]===type))}
+function score(f){let n=N[f];return owned(f,"L").length*2+owned(f,"S").length+n.tech/2+n.influence/4+n.misc}
+function conqDie(f){let d=f==="GER"?6:4;if(f==="FRA"&&treatyActive("FRA","UK"))d=Math.max(d,6);if(N[f].perks.has("military"))d=f==="GER"?8:6;return d}
+function expDie(f){return f==="USSR"?8:6}
+function rollDie(sides,f){let count=difficulty==="Easy"?1:difficulty==="Normal"?2:3;if(!ai.has(f))count=1;let vals=Array.from({length:count},()=>1+Math.floor(Math.random()*sides));return Math.max(...vals)}
+function legalAdjacent(id,f){return neighbors(id).some(n=>S[n].owner===f)}
+function canAttack(att,def){if(att===def||def==="NEU")return def!=="NEU";if(treatyActive(att,def))return false;if(N[att].immunity>0)return false;if(N[def]?.immunity>0)return false;return true}
+function isTarget(id){
+ if(!gameStarted||current()===undefined)return false;
+ let f=current(),h=H[id],st=S[id];
+ if(mode==="expand")return h[3]==="L"&&st.owner==="NEU"&&legalAdjacent(id,f);
+ if(mode==="sail")return h[3]==="S"&&st.owner==="NEU"&&legalAdjacent(id,f);
+ if(mode==="conquer"){
+   if(st.owner===f||st.owner==="NEU")return false;
+   if(h[3]==="S"&&!N[f].perks.has("naval"))return false;
+   if(!legalAdjacent(id,f))return false;
+   if(isCapital(id)&&round<=4)return false;
+   return canAttack(f,st.owner);
+ }
+ return false;
+}
+function isConnected(id,f){
+ if(S[id].owner!==f)return false;let cap=P[f].cap;if(!cap||S[cap].owner!==f)return false;
+ let q=[cap],seen=new Set(q);while(q.length){let a=q.shift();for(let b of neighbors(a)){if(!seen.has(b)&&S[b].owner===f){seen.add(b);q.push(b)}}}return seen.has(id)
+}
+function setupUI(){
+ const div=document.getElementById("factions");div.innerHTML="";
+ factions.forEach(f=>{
+  let d=document.createElement("div");d.className="frow";d.innerHTML=`<label><input type="checkbox" class="active" data-f="${f}" ${["GER","UK","USSR","USA","ITA","JPN","FRA","CHN"].includes(f)?"checked":""}> <span class="dot" style="background:${P[f].color}"></span>${P[f].name}</label><label style="font-size:11px;margin-left:22px"><input type="checkbox" class="ai" data-f="${f}" ${f!=="GER"?"checked":""}> AI-controlled</label><small>${P[f].ability}</small>`;div.appendChild(d)
+ });
+ document.getElementById("legend").innerHTML=factions.map(f=>`<span><i class="dot" style="background:${P[f].color}"></i>${P[f].name}</span>`).join("");
+}
+setupUI();
+
+document.getElementById("start").onclick=()=>{
+ initialState();difficulty=document.getElementById("difficulty").value;
+ active=[...document.querySelectorAll(".active:checked")].map(x=>x.dataset.f);
+ ai=new Set([...document.querySelectorAll(".ai:checked")].map(x=>x.dataset.f).filter(f=>active.includes(f)));
+ if(active.length<2){alert("Choose at least two powers.");return}
+ factions.filter(f=>!active.includes(f)).forEach(f=>Object.keys(S).filter(id=>S[id].owner===f).forEach(id=>S[id].owner="NEU"));
+ gameStarted=true;document.getElementById("setup").style.display="none";log(`Game started: ${active.map(f=>P[f].name).join(", ")}.`);beginTurn();
+}
+function beginTurn(){
+ if(!gameStarted)return; let f=current(); if(!f)return;
+ actionUsed=false;mode=null;pool=0;seaPool=0;peaceUsed=false;N[f].rerollReady=true;
+ if(owned(f,"L").length===0){N[f].resist=true}
+ update();log(`— ${P[f].name}, Round ${round} —`);
+ if(ai.has(f))setTimeout(aiTurn,300)
+}
+function action(name){
+ let f=current(); if(ai.has(f)||actionUsed||pendingChoices)return;
+ if(N[f].resist){return resistanceRoll(f)}
+ if(name==="conquer"){
+   let d=conqDie(f),r=rollDie(d,f),bonus=N[f].perks.has("air")?1:0;if(f==="FRA"&&N[f].perks.has("military")&&treatyActive("FRA","UK"))bonus++;
+   pool=r+bonus;seaPool=f==="ITA"?2:0;mode="conquer";actionUsed=true;status(`${P[f].name} rolled d${d}: ${r}${bonus?` + ${bonus}`:""} = ${pool} conquest points${seaPool?` + ${seaPool} Mediterranean sea-only points`:""}. Click adjacent enemy hexes.`);
+ } else if(name==="expand"){
+   let d=expDie(f),r=rollDie(d,f);pool=r;mode="expand";actionUsed=true;status(`Expand d${d}: ${r}. Claim adjacent uncommitted land, 1 point each.`);
+ } else if(name==="sail"){
+   if(!N[f].perks.has("naval"))return status("Naval Power is required before you can Sail.");
+   let r=rollDie(8,f);pool=r;mode="sail";actionUsed=true;status(`Sail d8: ${r}. Claim adjacent uncommitted sea hexes.`);
+ } else if(name==="tech"){
+   let r=rollDie(12,f)+(f==="USA"?1:0);
+   if(N[f].perks.has("intel")&&N[f].rerollReady){let r2=rollDie(12,f)+(f==="USA"?1:0);r=Math.max(r,r2);N[f].rerollReady=false}
+   let old=Math.floor(N[f].tech/8);N[f].tech+=r;let neu=Math.floor(N[f].tech/8);actionUsed=true;log(`${P[f].name} gains ${r} Technology (${N[f].tech} total).`);pendingChoices+=Math.max(0,neu-old);if(pendingChoices)choosePerk("tech");status(`Technology result: +${r}.`);update();
+ } else if(name==="influence"){
+   let r=rollDie(20,f)+(f==="USA"?1:0);let old=Math.floor(N[f].influence/10);N[f].influence+=r;let neu=Math.floor(N[f].influence/10);actionUsed=true;log(`${P[f].name} gains ${r} Influence (${N[f].influence} total).`);pendingChoices+=Math.max(0,neu-old);if(pendingChoices)choosePerk("inf");status(`Influence result: +${r}.`);update();
+ }
+ update();
+}
+function clickHex(id){
+ selected=id;
+ if(!mode){update();return}
+ if(!isTarget(id)){status("That hex is not a legal target for the current action.");update();return}
+ let f=current(),h=H[id],old=S[id].owner;
+ if(mode==="expand"||mode==="sail"){S[id].owner=f;pool--;log(`${P[f].name} claims ${h[0]}.`)}
+ else if(mode==="conquer"){
+   if(h[3]==="S"&&seaPool>0){seaPool--}else if(pool>0){pool--}else return;
+   S[id].owner=f;log(`${P[f].name} conquers ${h[0]} from ${P[old].name}.`);
+   if(isCapital(id)){N[f].misc+=10;log(`${P[f].name} captures a capital: +10 VP.`)}
+   else{if(N[f].perks.has("occupation"))N[f].influence++;if(f==="CHN")N[f].influence++}
+   checkElimination(old);
+ }
+ if(pool<=0 && seaPool<=0){mode=null;status("Action points spent. End your turn when ready.")}
+ update();checkVictory();
+}
+function checkElimination(f){
+ if(f==="NEU"||!N[f]||!active.includes(f))return;
+ if(owned(f,"L").length===0&&!N[f].resist){N[f].resist=true;owned(f,"S").forEach(id=>S[id].owner="NEU");log(`${P[f].name} has lost all land and enters Resistance Mode.`)}
+}
+function resistanceRoll(f){
+ actionUsed=true;let r=rollDie(4,f)+(f==="JPN"||f==="CHN"?1:0);log(`${P[f].name} Resistance roll: ${r}.`);
+ if(r>=4){let cap=P[f].cap;S[cap].owner=f;N[f].resist=false;N[f].misc+=10;N[f].resistImm=2;log(`${P[f].name} restores its capital! +10 VP and 2 turns special immunity.`);status("Resistance succeeds! Capital restored.")}
+ else status("Resistance fails this turn.");
+ update();
+}
+function choosePerk(kind){
+ let f=current(),arr=kind==="tech"?techPerks:infPerks;
+ let available=arr.filter(p=>p.id==="diplomacy"||!N[f].perks.has(p.id));
+ if(!available.length){pendingChoices=0;return}
+ document.getElementById("perkTitle").textContent=kind==="tech"?"Choose a Technology Upgrade":"Choose an Influence Ability";
+ let box=document.getElementById("perkChoices");box.innerHTML="";
+ available.forEach(p=>{let b=document.createElement("button");b.innerHTML=`${p.name}<br><small>${p.desc}</small>`;b.onclick=()=>{
+   if(p.id==="diplomacy")N[f].immunity+=3;else N[f].perks.add(p.id);log(`${P[f].name} unlocks ${p.name}.`);pendingChoices--;document.getElementById("perkModal").style.display="none";update();if(pendingChoices>0)setTimeout(()=>choosePerk(kind),80)
+ };box.appendChild(b)});
+ document.getElementById("perkModal").style.display="flex";
+}
+function openPeace(){
+ let f=current();if(ai.has(f)||peaceUsed||!gameStarted)return;
+ let opts=active.filter(x=>x!==f&&N[x].alive&&!treatyActive(f,x));
+ let box=document.getElementById("peaceChoices");box.innerHTML="";
+ opts.forEach(x=>{let b=document.createElement("button");b.textContent=P[x].name;b.onclick=()=>proposePeace(x);box.appendChild(b)});
+ if(!opts.length)box.innerHTML='<span class="help">No eligible treaty partners.</span>';
+ document.getElementById("peaceModal").style.display="flex";
+}
+function closePeace(){document.getElementById("peaceModal").style.display="none"}
+function proposePeace(other){
+ let f=current();peaceUsed=true;closePeace();let accept;
+ if(ai.has(other)){let threat=neighborsOwnedBorder(f,other),diff=score(f)-score(other);accept=Math.random()<(0.45+(threat?0.2:0)+(diff>8?0.15:0))}
+ else accept=confirm(`${P[other].name}: Accept a 15-global-turn peace treaty with ${P[f].name}?`);
+ if(accept){treaties[treatyKey(f,other)]=globalTurn+15;log(`${P[f].name} and ${P[other].name} sign a peace treaty until global turn ${globalTurn+15}.`)}
+ else log(`${P[other].name} rejects ${P[f].name}'s peace proposal.`);
+ update();
+}
+function neighborsOwnedBorder(a,b){return owned(a).some(id=>neighbors(id).some(n=>S[n].owner===b))}
+function cancelMode(){mode=null;pool=0;seaPool=0;status("Selection mode cancelled. Any unused action points are discarded.");update()}
+function endTurn(){
+ if(ai.has(current())||pendingChoices)return;
+ finishTurn();advance();
+}
+function finishTurn(){
+ let f=current();
+ if(N[f].perks.has("infra"))N[f].misc+=owned(f,"L").length*.25;
+ if(N[f].perks.has("trade"))N[f].misc+=owned(f,"S").length*.5;
+ if(f==="UK")N[f].misc+=owned(f,"S").length*.25;
+ if(N[f].perks.has("warbonds")){let level=Math.floor(N[f].influence/20);if(level>N[f].lastWarBondLevel){N[f].misc+=(level-N[f].lastWarBondLevel);N[f].lastWarBondLevel=level}}
+ if(N[f].immunity>0)N[f].immunity--;if(N[f].resistImm>0)N[f].resistImm--;
+ mode=null;pool=0;seaPool=0;
+}
+function advance(){
+ globalTurn++;idx++;if(idx>=active.length){idx=0;round++}checkVictory();if(gameStarted)beginTurn()
+}
+function aiTurn(){
+ let f=current(); if(!ai.has(f)||!gameStarted)return;
+ if(N[f].resist){resistanceRoll(f);setTimeout(()=>{finishTurn();advance()},250);return}
+ let stronger=active.find(x=>x!==f&&!ai.has(x)&&neighborsOwnedBorder(f,x)&&score(x)>score(f)+5&&!treatyActive(f,x));
+ if(stronger&&Math.random()<.25){peaceUsed=true;let accept=Math.random()<.65;if(accept){treaties[treatyKey(f,stronger)]=globalTurn+15;log(`${P[f].name} and ${P[stronger].name} sign an AI-negotiated treaty.`)}}
+ let enemyTargets=Object.keys(H).filter(id=>S[id].owner!==f&&S[id].owner!=="NEU"&&legalAdjacent(id,f)&&(!isCapital(id)||round>4)&&canAttack(f,S[id].owner)&&(H[id][3]==="L"||N[f].perks.has("naval")));
+ let expansion=Object.keys(H).filter(id=>H[id][3]==="L"&&S[id].owner==="NEU"&&legalAdjacent(id,f));
+ let sea=Object.keys(H).filter(id=>H[id][3]==="S"&&S[id].owner==="NEU"&&legalAdjacent(id,f));
+ if(enemyTargets.length){let d=conqDie(f),r=rollDie(d,f)+(N[f].perks.has("air")?1:0);pool=r;seaPool=f==="ITA"?2:0;mode="conquer";actionUsed=true;while((pool>0||seaPool>0)){let ts=Object.keys(H).filter(isTarget);if(!ts.length)break;let cap=ts.find(isCapital);clickHex(cap||ts[Math.floor(Math.random()*ts.length)])}}
+ else if(expansion.length){let d=expDie(f);pool=rollDie(d,f);mode="expand";actionUsed=true;while(pool>0){let ts=Object.keys(H).filter(isTarget);if(!ts.length)break;clickHex(ts[Math.floor(Math.random()*ts.length)])}}
+ else if(N[f].perks.has("naval")&&sea.length&&Math.random()<.5){pool=rollDie(8,f);mode="sail";actionUsed=true;while(pool>0){let ts=Object.keys(H).filter(isTarget);if(!ts.length)break;clickHex(ts[Math.floor(Math.random()*ts.length)])}}
+ else{
+   if(Math.random()<.55){let r=rollDie(12,f)+(f==="USA"?1:0),old=Math.floor(N[f].tech/8);N[f].tech+=r;let k=Math.floor(N[f].tech/8)-old;while(k-->0){let av=techPerks.filter(p=>!N[f].perks.has(p.id));if(av.length){let pref=["military","naval","air","infra","intel"];let p=pref.map(x=>av.find(a=>a.id===x)).find(Boolean);N[f].perks.add(p.id);log(`${P[f].name} researches ${p.name}.`)}}}
+   else{let r=rollDie(20,f)+(f==="USA"?1:0),old=Math.floor(N[f].influence/10);N[f].influence+=r;let k=Math.floor(N[f].influence/10)-old;while(k-->0){let av=infPerks.filter(p=>p.id==="diplomacy"||!N[f].perks.has(p.id));if(av.length){let p=av.find(x=>x.id==="occupation")||av[0];if(p.id==="diplomacy")N[f].immunity+=3;else N[f].perks.add(p.id);log(`${P[f].name} unlocks ${p.name}.`)}}}
+ }
+ update();setTimeout(()=>{finishTurn();advance()},260)
+}
+function checkVictory(){
+ if(!gameStarted)return;
+ if(round>12){let ranked=active.slice().sort((a,b)=>score(b)-score(a));gameStarted=false;log(`GAME OVER after Round 12. ${P[ranked[0]].name} wins with ${score(ranked[0]).toFixed(1)} VP.`);alert(`${P[ranked[0]].name} wins with ${score(ranked[0]).toFixed(1)} VP.`);return}
+ let ax=active.filter(f=>P[f].axis), non=active.filter(f=>!P[f].axis);
+ if(ax.length&&ax.every(f=>S[P[f].cap].owner!==f)){gameStarted=false;let best=non.sort((a,b)=>score(b)-score(a))[0];log(`AXIS COLLAPSE — coalition victory. Highest Allied/unaligned score: ${P[best].name}.`);alert(`Axis collapse. ${P[best].name} leads the victors.`)}
+ else if(ax.length&&non.length&&non.every(f=>P[S[P[f].cap].owner]?.axis)){gameStarted=false;let best=ax.sort((a,b)=>score(b)-score(a))[0];log(`AXIS STRATEGIC VICTORY — ${P[best].name} has the highest Axis score.`);alert(`Axis strategic victory. ${P[best].name} leads the Axis.`)}
+}
+function status(s){document.getElementById("status").textContent=s}
+function log(s){let d=document.createElement("div");d.textContent=s;document.getElementById("log").prepend(d)}
+function update(){
+ draw();document.getElementById("round").textContent=round;document.getElementById("global").textContent=globalTurn;
+ let f=current();document.getElementById("who").textContent=f?P[f].name:"—";
+ if(!f)return;
+ let n=N[f];document.getElementById("nation").innerHTML=`<div style="font-weight:800"><span class="dot" style="background:${P[f].color}"></span> ${P[f].name}${ai.has(f)?" • AI":""}</div><div class="help" style="margin:5px 0">${P[f].ability}</div><div class="statrow"><div class="stat"><b>${score(f).toFixed(1)}</b><span>VP</span></div><div class="stat"><b>${n.tech}</b><span>Technology</span></div><div class="stat"><b>${n.influence}</b><span>Influence</span></div><div class="stat"><b>d${conqDie(f)}</b><span>Conquer</span></div></div>${n.resist?'<div class="status" style="margin-top:7px;color:#ffd584"><b>RESISTANCE MODE</b> — your only core action is a resistance roll.</div>':""}${n.immunity?`<div class="help">Diplomatic immunity: ${n.immunity} turn(s)</div>`:""}`;
+ document.getElementById("perks").innerHTML=[...n.perks].map(id=>{let p=[...techPerks,...infPerks].find(x=>x.id===id);return `<div class="perk owned"><b>✓ ${p?.name||id}</b><div class="help">${p?.desc||""}</div></div>`}).join("")||'<div class="help">No upgrades yet.</div>';
+ document.getElementById("scoreList").innerHTML=active.slice().sort((a,b)=>score(b)-score(a)).map(x=>`${P[x].name}: <b>${score(x).toFixed(1)}</b> VP • ${owned(x,"L").length} land • ${owned(x,"S").length} sea`).join("<br>");
+ let h=selected&&H[selected];document.getElementById("hexInfo").innerHTML=h?`<b>${h[0]}</b><br>${h[3]==="S"?"Sea":"Land"} hex • ${S[selected].owner==="NEU"?"Uncommitted":P[S[selected].owner].name}${h[5]?" • ★ Capital":""}<br>Adjacent: ${neighbors(selected).map(x=>H[x][0]).join(", ")}`:"Click a hex.";
+ let human=!ai.has(f),disable=!human||actionUsed||pendingChoices;["conquer","expand","tech","influence"].forEach(id=>document.getElementById(id).disabled=disable);
+ document.getElementById("sail").disabled=disable||!n.perks.has("naval");document.getElementById("peace").disabled=!human||peaceUsed||pendingChoices;document.getElementById("end").disabled=!human||pendingChoices;document.getElementById("cancel").disabled=!human||!mode;
+}
+document.getElementById("conquer").onclick=()=>action("conquer");document.getElementById("expand").onclick=()=>action("expand");document.getElementById("sail").onclick=()=>action("sail");document.getElementById("tech").onclick=()=>action("tech");document.getElementById("influence").onclick=()=>action("influence");document.getElementById("peace").onclick=openPeace;document.getElementById("cancel").onclick=cancelMode;document.getElementById("end").onclick=endTurn;
+draw();
+</script>
+</body></html>
