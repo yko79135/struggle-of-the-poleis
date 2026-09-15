@@ -2,21 +2,49 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="preload" href="board.jpg" as="image">
 <title>Struggle of the Nations: 1939–1945</title>
 <style>
 :root{--bg:#0e1217;--panel:#171d24;--panel2:#202834;--line:#394656;--text:#edf3f8;--muted:#aeb9c4;--gold:#f2c14e;--sea:#aec7d5;--land:#d9d3bc;--ok:#71d294;--bad:#ef7a73}
 *{box-sizing:border-box} body{margin:0;background:#0d1116;color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
-#app{display:grid;grid-template-columns:minmax(760px,1fr) 390px;min-height:100vh}
+#app{display:grid;grid-template-columns:minmax(0,1fr) 370px;min-height:100vh}
 #main{padding:12px;display:flex;flex-direction:column;gap:9px;min-width:0}
 #side{padding:12px;background:#131920;border-left:1px solid var(--line);overflow:auto;max-height:100vh}
 .top{display:flex;justify-content:space-between;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--line);padding:10px 13px;border-radius:12px}
 h1{font-size:21px;margin:0}.sub{font-size:11px;color:var(--muted);margin-top:2px}
 .badges{display:flex;gap:6px;flex-wrap:wrap}.badge{padding:6px 9px;border:1px solid var(--line);background:#222a34;border-radius:999px;font-size:11px}
-#mapwrap{position:relative;background:linear-gradient(#9bb9c8,#789aae);border:1px solid #536674;border-radius:14px;overflow:hidden;min-height:680px}
-#map{width:100%;height:100%;display:block}
-.hex{stroke:#3b4650;stroke-width:2;cursor:pointer;transition:.1s}.hex:hover{stroke:white;stroke-width:3}.hex.target{stroke:#6effa3;stroke-width:5}.hex.capital{stroke:#ffe08a;stroke-width:3}
-.label{font-size:9px;font-weight:800;fill:#111;text-anchor:middle;pointer-events:none}.tiny{font-size:7px}.seaLabel{fill:#163342}
+#mapwrap{position:relative}
+#viewport{position:relative;height:min(calc(100vh - 150px),calc((100vw - 400px) * 0.4104));min-height:320px;background:#0b1a26;border:1px solid #536674;border-radius:14px;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:grab}
+#viewport:active{cursor:grabbing}
+#board{position:absolute;left:0;top:0;width:1077px;height:442px;transform-origin:0 0;will-change:transform}
+#board img{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;-webkit-user-drag:none}
+#map{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.region{fill:var(--fc,transparent);fill-opacity:0;stroke:transparent;stroke-linejoin:round;cursor:pointer;pointer-events:all;transition:fill-opacity .15s,stroke .15s;--z:var(--zoom,1)}
+.region.land{stroke-width:calc(6px / var(--z))}
+.region.sea{stroke-width:0}
+.region.owned.land{fill-opacity:.34;stroke:var(--fc);stroke-opacity:.75;stroke-width:calc(1.1px / var(--z))}
+.region.owned.sea{fill-opacity:0}
+.seaTint{fill:transparent;fill-opacity:.2;pointer-events:none}
+#seaTint{pointer-events:none}
+.region.land:hover{stroke:rgba(255,255,255,.85);stroke-opacity:1;stroke-width:calc(1.6px / var(--z));fill-opacity:.42}
+.region.sea:hover{stroke:rgba(215,240,255,.65);stroke-width:calc(1.4px / var(--z));stroke-dasharray:calc(5px / var(--z)) calc(4px / var(--z));fill:#bfe6ff;fill-opacity:.08}
+.region.owned.sea:hover{fill:var(--fc);fill-opacity:.12}
+.region.target{stroke:#7dffae;stroke-opacity:1;stroke-width:calc(2.2px / var(--z));stroke-dasharray:none;animation:pulse 1.3s ease-in-out infinite}
+.region.target:not(.owned){fill:#7dffae;fill-opacity:.14}
+.region.selected{stroke:#ffd65a;stroke-opacity:1;stroke-width:calc(2.4px / var(--z));stroke-dasharray:none}
+@keyframes pulse{50%{stroke-opacity:.35}}
+#markers{pointer-events:none}
+.capRing{fill:none;stroke-width:.9;filter:drop-shadow(0 0 .8px #000)}
+.capStar{fill:#fff;stroke:#222;stroke-width:.4}
+.cutoff circle{fill:#ffcf4a;stroke:#3a2a00;stroke-width:.4}.cutoff text{font:700 3.6px system-ui;fill:#3a2a00;text-anchor:middle;dominant-baseline:middle}
+#tip{position:absolute;z-index:5;pointer-events:none;background:#0d1319e6;border:1px solid #4d5d6d;border-radius:8px;padding:4px 8px;font-size:12px;line-height:1.3;white-space:nowrap;box-shadow:0 2px 8px #0008}
+#tip span{display:block;font-size:10px;color:var(--muted)}
+.zoombar{position:absolute;right:8px;top:50%;transform:translateY(-50%);z-index:6;display:flex;flex-direction:column;gap:5px}
+.zoombar button{width:38px;height:34px;padding:0;font-size:16px;background:#141c25e0;border-color:#5a6b7c}
+.zoombar button.txt{font-size:10px}
+.maphint.gone{opacity:0;transition:opacity .6s}
+.maphint{position:absolute;left:10px;bottom:8px;z-index:4;font-size:10px;color:#cfdbe6;background:#0d131aaa;padding:3px 7px;border-radius:6px;pointer-events:none}
 .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:11px;margin-bottom:9px}.panel h3{font-size:14px;margin:0 0 8px}
 button,select,input{font:inherit}button{background:#27313d;color:#fff;border:1px solid #465566;border-radius:8px;padding:8px 9px;font-weight:700;cursor:pointer}button:hover{filter:brightness(1.12)}button:disabled{opacity:.35;cursor:not-allowed}.primary{background:#285f9b}.danger{background:#743335}.good{background:#286640}
 .actions{display:grid;grid-template-columns:1fr 1fr;gap:6px}.actions button{font-size:12px}
@@ -24,14 +52,22 @@ button,select,input{font:inherit}button{background:#27313d;color:#fff;border:1px
 .help{font-size:11px;color:var(--muted);line-height:1.45}.status{font-size:12px;background:#0e141a;padding:8px;border-radius:8px;line-height:1.4}
 .log{height:165px;overflow:auto;background:#0c1116;border-radius:8px;padding:7px;font-size:11px;line-height:1.4}.log div{border-bottom:1px solid #1f2933;padding:2px}
 .perk{background:#202833;padding:7px;border-radius:8px;margin:5px 0}.perk.owned{outline:1px solid var(--ok)}.perk b{font-size:12px}
-.modalLayer{position:absolute;inset:0;background:#070a0edb;display:flex;align-items:center;justify-content:center;z-index:20}.modal{background:#161c23;border:1px solid #4a5968;border-radius:15px;width:min(720px,92%);max-height:92%;overflow:auto;padding:18px}.modal h2{margin:0 0 6px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.frow{padding:9px;background:#202833;border-radius:9px}.frow label{display:flex;gap:7px;align-items:center;font-weight:700}.frow small{display:block;color:#b6c1cc;margin:4px 0 0 22px;line-height:1.3}
+.modalLayer{position:fixed;inset:0;background:#070a0edb;display:flex;align-items:center;justify-content:center;z-index:20}.modal{background:#161c23;border:1px solid #4a5968;border-radius:15px;width:min(720px,92%);max-height:92%;overflow:auto;padding:18px}.modal h2{margin:0 0 6px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.frow{padding:9px;background:#202833;border-radius:9px}.frow label{display:flex;gap:7px;align-items:center;font-weight:700}.frow small{display:block;color:#b6c1cc;margin:4px 0 0 22px;line-height:1.3}
 .startbar{display:flex;gap:8px;margin-top:12px;align-items:center}.startbar select{background:#222b35;color:#fff;border:1px solid #495769;border-radius:8px;padding:8px}
 .legend{display:flex;gap:7px;flex-wrap:wrap;font-size:10px}.legend span{display:flex;align-items:center;gap:4px}.dot{width:11px;height:11px;border-radius:50%;display:inline-block;border:1px solid #fff7}
 .modalBtns{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
 table{width:100%;border-collapse:collapse;font-size:11px}td,th{padding:5px;border-bottom:1px solid #2b3642;text-align:left}
 #scoreList{font-size:11px;line-height:1.5}
 .rulebox details{margin:5px 0}.rulebox summary{cursor:pointer;font-weight:700;font-size:12px}.rulebox p,.rulebox li{font-size:11px;color:#c0c9d2;line-height:1.45}
-@media(max-width:1000px){#app{grid-template-columns:1fr}#side{max-height:none;border-left:0;border-top:1px solid var(--line)}#mapwrap{min-height:650px}}
+@media(max-width:1000px){#app{grid-template-columns:1fr}#side{max-height:none;border-left:0;border-top:1px solid var(--line)}
+ #main{position:sticky;top:0;z-index:10;background:#0d1116;padding:6px 6px 4px;gap:5px;padding-top:max(6px,env(safe-area-inset-top))}
+ .top{padding:6px 9px;flex-wrap:wrap;gap:4px}h1{font-size:14px}.sub{display:none}.badges{gap:4px;flex-wrap:nowrap}.badge{padding:3px 7px;font-size:10px}
+ #viewport{height:46vh;height:46svh;min-height:250px;border-radius:10px}
+ .legend{display:none}
+ #side{padding:8px 8px max(12px,env(safe-area-inset-bottom))}
+ .actions button{padding:11px 6px;font-size:13px}
+}
+@media(max-width:1000px) and (orientation:landscape){#viewport{height:70svh}#main{position:relative}}
 </style>
 </head>
 <body>
@@ -42,7 +78,12 @@ table{width:100%;border-collapse:collapse;font-size:11px}td,th{padding:5px;borde
    <div class="badges"><span class="badge">Round <b id="round">1</b></span><span class="badge">Turn <b id="who">—</b></span><span class="badge">Global <b id="global">0</b></span></div>
   </div>
   <div id="mapwrap">
-   <svg id="map" viewBox="0 0 1320 760"></svg>
+   <div id="viewport">
+    <div id="board"><img src="board.jpg" alt="Illustrated world map, 1939–1945" draggable="false"><svg id="map" viewBox="0 0 1077 442" preserveAspectRatio="none"></svg></div>
+    <div id="tip" hidden></div>
+    <div class="zoombar"><button id="zin" title="Zoom in">+</button><button id="zout" title="Zoom out">−</button><button id="zfit" class="txt" title="Whole world">World</button><button id="zeu" class="txt" title="Zoom to Europe">Europe</button><button id="zas" class="txt" title="Zoom to Asia">Asia</button></div>
+    <div class="maphint">Drag to pan • pinch or scroll to zoom • tap a region</div>
+   </div>
    <div id="setup" class="modalLayer"><div class="modal">
     <h2>Set Up the War</h2>
     <div class="help">Choose participating powers. Check AI for computer-controlled factions. Like Poleis, each active human power receives exactly <b>one core action roll per turn</b>.</div>
@@ -68,22 +109,23 @@ table{width:100%;border-collapse:collapse;font-size:11px}td,th{padding:5px;borde
     </div>
     <div id="status" class="status" style="margin-top:8px">Start the game.</div>
    </div>
-   <div class="panel"><h3>Selected Hex</h3><div id="hexInfo" class="help">Click a hex.</div></div>
+   <div class="panel"><h3>Selected Region</h3><div id="hexInfo" class="help">Tap a region on the map.</div></div>
    <div class="panel"><h3>Development</h3><div id="perks"></div></div>
    <div class="panel"><h3>Scores</h3><div id="scoreList"></div></div>
    <div class="panel rulebox"><h3>Quick Rules</h3>
-    <details open><summary>Official turn rule</summary><p>Optional peace first. Then choose exactly one core action: Conquer, Expand, Sail, Technology, or Influence. Spend territorial action points by clicking legal adjacent hexes. End Turn discards unused points.</p></details>
-    <details><summary>Scoring</summary><p>Land: 2 VP each. Sea: 1 VP each. Technology: Technology ÷ 2 VP. Influence: Influence ÷ 4 VP. Capturing a capital: +10 VP. Recurring perks and faction abilities may add more.</p></details>
+    <details open><summary>Official turn rule</summary><p>Optional peace first. Then choose exactly one core action: Conquer, Expand, Sail, Technology, or Influence. Spend territorial action points by tapping legal adjacent regions. End Turn discards unused points.</p></details>
+    <details><summary>Scoring</summary><p>Land region: 2 VP each. Sea zone: 1 VP each. Technology: Technology ÷ 2 VP. Influence: Influence ÷ 4 VP. Capturing a capital: +10 VP. Recurring perks and faction abilities may add more.</p></details>
     <details><summary>Capital protection</summary><p>Active capitals cannot be conquered during Rounds 1–4. Protection ends at the start of Round 5.</p></details>
-    <details><summary>Map scale</summary><p>Each land hex is a strategic region, not a literal province. Sea hexes represent operational sea zones. Newly captured hexes can immediately open the next adjacent target, preserving Poleis-style chaining.</p></details><details><summary>Resistance</summary><p>A power with no land enters Resistance Mode. On its turn it rolls d4; 4+ restores its capital, awards +10 VP, and grants two turns of special immunity.</p></details>
+    <details><summary>The board</summary><p>The illustrated map is the board. Land regions are strategic areas drawn from its own borders; broad sea zones cover the oceans. Adjacency follows a fixed graph (including sea lanes and the Pacific wrap-around), and a newly captured region can immediately open the next adjacent target, preserving Poleis-style chaining. A <b>!</b> marks land cut off from its capital.</p></details><details><summary>Resistance</summary><p>A power with no land enters Resistance Mode. On its turn it rolls d4; 4+ restores its capital, awards +10 VP, and grants two turns of special immunity.</p></details>
    </div>
    <div class="panel"><h3>Game Log</h3><div id="log" class="log"></div></div>
  </aside>
 </div>
+<script src="map-regions.js"></script>
 <script>
 const P={
  GER:{name:"Germany",color:"#70757a",ability:"Blitz Doctrine — begins with Conquer d6 instead of d4. Stronger Military upgrades it to d8.",cap:"berlin",axis:true},
- UK:{name:"United Kingdom",color:"#b4525c",ability:"Maritime Empire — begins with Naval Power. End turn: +0.25 VP per owned sea hex.",cap:"britain"},
+ UK:{name:"United Kingdom",color:"#b4525c",ability:"Maritime Empire — begins with Naval Power. End turn: +0.25 VP per owned sea zone.",cap:"britain"},
  USSR:{name:"Soviet Union",color:"#b8483f",ability:"Strategic Depth — begins with Expand d8 instead of d6.",cap:"moscow"},
  USA:{name:"United States",color:"#5278b7",ability:"Arsenal of Democracy — +1 to every Technology roll and +1 to every Influence roll.",cap:"usa"},
  ITA:{name:"Italy",color:"#6c9a68",ability:"Mare Nostrum — begins with Naval Power. Every Conquer roll also creates 2 sea-only conquest points.",cap:"rome",axis:true},
@@ -94,115 +136,191 @@ const P={
 };
 
 const techPerks=[
- {id:"naval",name:"Naval Power",desc:"Unlocks Sail d8 and conquest of enemy sea hexes."},
+ {id:"naval",name:"Naval Power",desc:"Unlocks Sail d8 and conquest of enemy sea zones."},
  {id:"military",name:"Stronger Military",desc:"Conquer die d4→d6; Germany d6→d8."},
  {id:"intel",name:"Intelligence",desc:"After every Technology roll, reroll once and keep the higher result."},
- {id:"infra",name:"Industrial Infrastructure",desc:"End turn: +0.25 VP per owned land hex."},
+ {id:"infra",name:"Industrial Infrastructure",desc:"End turn: +0.25 VP per owned land region."},
  {id:"air",name:"Air Power",desc:"+1 to every conquest total."}
 ];
 const infPerks=[
  {id:"diplomacy",name:"Diplomatic Immunity",desc:"Adds 3 turns of immunity. You normally cannot attack while it lasts. Repeatable."},
  {id:"warbonds",name:"War Bonds",desc:"At each new 20-Influence level, gain +1 permanent VP.",once:true},
- {id:"trade",name:"Trade & Convoys",desc:"End turn: +0.5 VP per owned sea hex.",once:true},
+ {id:"trade",name:"Trade & Convoys",desc:"End turn: +0.5 VP per owned sea zone.",once:true},
  {id:"occupation",name:"Occupation Policy",desc:"After each successful non-capital conquest, gain +1 Influence.",once:true}
 ];
 
 const H={
- "usa":["Eastern USA",-8,1,"L","USA",1],
- "usa_mid":["Central USA",-8,0,"L","USA"],
- "usa_south":["Southern USA",-8,2,"L","USA"],
- "canada":["Eastern Canada",-7,-1,"L",""],
- "atl_w":["W. Atlantic",-6,0,"S","USA"],
- "atl_mid":["Mid Atlantic",-5,0,"S",""],
- "atl_n":["N. Atlantic",-5,-1,"S","UK"],
- "atl_e":["E. Atlantic",-4,0,"S","UK"],
- "atl_s":["S. Atlantic",-5,2,"S",""],
- "ireland":["Ireland",-3,-1,"L",""],
- "britain":["Britain",-2,-1,"L","UK",1],
- "scotland":["Scotland",-2,-2,"L","UK"],
- "channel":["English Channel",-2,0,"S","UK"],
- "northsea":["North Sea",-1,-2,"S","UK"],
- "norway":["Norway",0,-4,"L",""],
- "sweden":["Sweden",1,-4,"L",""],
- "finland":["Finland",2,-4,"L",""],
- "denmark":["Denmark",0,-3,"L",""],
- "baltic":["Baltic Sea",1,-3,"S",""],
- "low":["Low Countries",-1,-1,"L",""],
- "normandy":["Normandy",-1,0,"L","FRA"],
- "paris":["Paris",0,0,"L","FRA",1],
- "alsace":["Alsace",1,0,"L","FRA"],
- "frsouth":["S. France",0,1,"L","FRA"],
- "bordeaux":["Bordeaux",-1,1,"L","FRA"],
- "spain_n":["N. Spain",-1,2,"L",""],
- "spain_s":["S. Spain",-1,3,"L",""],
- "portugal":["Portugal",-2,3,"L",""],
- "bay":["Bay of Biscay",-2,1,"S",""],
- "ruhr":["Ruhr",1,-1,"L","GER"],
- "berlin":["Berlin",2,-1,"L","GER",1],
- "bavaria":["Bavaria",2,0,"L","GER"],
- "eastprussia":["East Prussia",3,-2,"L","GER"],
- "bohemia":["Bohemia",3,0,"L",""],
- "austria":["Austria",3,1,"L",""],
- "poland_w":["W. Poland",3,-1,"L",""],
- "poland_e":["E. Poland",4,-1,"L",""],
- "slovakia":["Slovakia",4,0,"L",""],
- "italy_n":["N. Italy",1,1,"L","ITA"],
- "rome":["Rome",1,2,"L","ITA",1],
- "sicily":["Sicily",1,3,"L","ITA"],
- "adriatic":["Adriatic Sea",2,2,"S","ITA"],
- "yugo":["Yugoslavia",3,2,"L",""],
- "greece":["Greece",3,3,"L",""],
- "albania":["Albania",2,3,"L",""],
- "hungary":["Hungary",4,1,"L",""],
- "romania":["Romania",5,1,"L",""],
- "bulgaria":["Bulgaria",4,2,"L",""],
- "blacksea":["Black Sea",5,2,"S",""],
- "baltstates":["Baltic States",4,-2,"L",""],
- "leningrad":["Leningrad",5,-3,"L","USSR"],
- "belarus":["Belarus",5,-1,"L","USSR"],
- "moscow":["Moscow",6,-2,"L","USSR",1],
- "smolensk":["Smolensk",6,-1,"L","USSR"],
- "ukraine":["Ukraine",5,0,"L","USSR"],
- "kiev":["Kiev",6,0,"L","USSR"],
- "volga":["Volga",7,-1,"L","USSR"],
- "stalingrad":["Stalingrad",7,0,"L","USSR"],
- "caucasus":["Caucasus",6,1,"L","USSR"],
- "urals":["Urals",8,-2,"L","USSR"],
- "kazakh":["Kazakhstan",8,-1,"L","USSR"],
- "westmed":["W. Mediterranean",0,3,"S",""],
- "centralmed":["Central Med",2,4,"S","ITA"],
- "eastmed":["E. Mediterranean",4,4,"S","UK"],
- "morocco":["Morocco",-1,4,"L",""],
- "algeria":["Algeria",0,4,"L","FRA"],
- "tunisia":["Tunisia",1,4,"L","FRA"],
- "libya":["Libya",2,5,"L","ITA"],
- "egypt":["Egypt / Suez",4,5,"L","UK"],
- "levant":["Levant",5,4,"L","UK"],
- "turkey":["Turkey",5,3,"L",""],
- "iraq":["Iraq",6,3,"L","UK"],
- "iran":["Iran",7,2,"L",""],
- "redsea":["Red Sea",5,5,"S","UK"],
- "indian":["Indian Ocean",6,5,"S","UK"],
- "arabian":["Arabian Sea",7,4,"S","UK"],
- "india":["India",8,3,"L","UK"],
- "burma":["Burma",9,3,"L","UK"],
- "seasia":["Southeast Asia",10,3,"L",""],
- "southchina":["S. China Sea",10,2,"S",""],
- "china_w":["W. China",8,1,"L","CHN"],
- "chongqing":["Chongqing",9,1,"L","CHN",1],
- "china_n":["N. China",9,0,"L","CHN"],
- "china_e":["E. China",10,1,"L","CHN"],
- "manchuria":["Manchuria",10,-1,"L","JPN"],
- "korea":["Korea",11,-1,"L","JPN"],
- "japan":["Japan",12,-1,"L","JPN",1],
- "yellowsea":["Yellow Sea",11,0,"S","JPN"],
- "westpac":["W. Pacific",12,0,"S","JPN"],
- "philippines":["Philippines",11,2,"L","USA"],
- "pacific_s":["S. Pacific",12,2,"S","USA"]
+ "alaska":["Alaska",45.5,57,"L","USA"],
+ "canada_w":["Western Canada",126.5,78,"L",""],
+ "canada":["Eastern Canada",240,105.5,"L",""],
+ "usa_west":["Western USA",119,151,"L","USA"],
+ "usa":["Eastern USA",165,157,"L","USA",1],
+ "usa_south":["Southern USA",201,169.5,"L","USA"],
+ "mexico":["Mexico",145.5,199,"L",""],
+ "camerica":["Central America",191.5,234.5,"L",""],
+ "caribbean":["Cuba & Caribbean",210,211,"L",""],
+ "venezuela":["Venezuela & Colombia",217,265.5,"L",""],
+ "brazil":["Brazil",288.5,315.5,"L",""],
+ "peru":["Peru & Bolivia",213,310,"L",""],
+ "argentina":["Argentina & Chile",236,372,"L",""],
+ "greenland":["Greenland",316,27,"L",""],
+ "iceland":["Iceland",361,50.5,"L",""],
+ "britain":["Britain",405,108,"L","UK",1],
+ "scotland":["Scotland",407,84,"L","UK"],
+ "ireland":["Ireland",391,106,"L",""],
+ "norway":["Norway",459,62,"L",""],
+ "sweden":["Sweden",472.5,80,"L",""],
+ "finland":["Finland",506,60.5,"L",""],
+ "leningrad":["Leningrad",541.5,71.5,"L","USSR"],
+ "northrussia":["Northern Russia",592.5,64,"L","USSR"],
+ "baltstates":["Baltic States",526.5,88,"L",""],
+ "denmark":["Denmark",454,90,"L",""],
+ "low":["Low Countries",458,102.5,"L",""],
+ "normandy":["Normandy",412,130.5,"L","FRA"],
+ "paris":["Paris / Northern France",432.5,127.5,"L","FRA",1],
+ "bordeaux":["Bordeaux / Western France",419.5,143,"L","FRA"],
+ "frsouth":["Southern France",439.5,146,"L","FRA"],
+ "swiss":["Switzerland",455.5,143,"L",""],
+ "spain":["Spain",402.5,169.5,"L",""],
+ "ruhr":["Ruhr",459.5,119,"L","GER"],
+ "berlin":["Berlin / Central Germany",483,131,"L","GER",1],
+ "eastprussia":["East Prussia",506.5,92.5,"L","GER"],
+ "bavaria":["Bavaria",466,135,"L","GER"],
+ "austria":["Austria",508,142.5,"L",""],
+ "italy_n":["Northern Italy",474,152,"L","ITA"],
+ "rome":["Rome",488,173,"L","ITA",1],
+ "sicily":["Southern Italy & Sicily",512.5,174,"L","ITA"],
+ "hungary":["Hungary",506.5,158.5,"L",""],
+ "yugo":["Balkans (Yugoslavia)",526.5,162,"L",""],
+ "poland_w":["Western Poland",529,120.5,"L",""],
+ "poland_e":["Eastern Poland",556.5,123.5,"L",""],
+ "romania":["Romania",550.5,151.5,"L",""],
+ "bulgaria":["Bulgaria",551.5,165,"L",""],
+ "greece":["Greece",534.5,181.5,"L",""],
+ "belarus":["Belarus",576.5,96,"L","USSR"],
+ "kiev":["Kiev",583.5,139,"L","USSR"],
+ "ukraine":["Ukraine",618,152,"L","USSR"],
+ "caucasus":["Caucasus",637.5,165.5,"L","USSR"],
+ "moscow":["Moscow",677,97,"L","USSR",1],
+ "stalingrad":["Stalingrad",672.5,157.5,"L","USSR"],
+ "urals":["Urals",722,109,"L","USSR"],
+ "kazakh":["Kazakhstan",703,148.5,"L","USSR"],
+ "siberia":["Siberia",788.5,69,"L","USSR"],
+ "esiberia":["Eastern Siberia",882,68.5,"L",""],
+ "kamchatka":["Kamchatka",978.5,87,"L",""],
+ "mongolia":["Mongolia",809,134,"L",""],
+ "manchuria":["Manchuria",885,131.5,"L","JPN"],
+ "korea":["Korea",913,175.5,"L","JPN"],
+ "japan":["Japan",934.5,187,"L","JPN",1],
+ "china_w":["Western China",756.5,162.5,"L","CHN"],
+ "china_n":["Northern China",821,168.5,"L","CHN"],
+ "chongqing":["Chongqing",798,191.5,"L","CHN",1],
+ "china_e":["Eastern China",846,200.5,"L","CHN"],
+ "turkey":["Turkey",621,186.5,"L",""],
+ "iraq":["Iraq",662.5,198,"L","UK"],
+ "saudi":["Saudi Arabia",625.5,228,"L",""],
+ "levant":["Levant",577,234.5,"L","UK"],
+ "india":["India",710.5,213,"L","UK"],
+ "burma":["Burma",804.5,231.5,"L","UK"],
+ "indochina":["Indochina",811,245.5,"L",""],
+ "malaya":["Malaya",806,301,"L",""],
+ "dei":["Dutch East Indies",852.5,303.5,"L",""],
+ "philippines":["Philippines",880.5,239,"L","USA"],
+ "newguinea":["New Guinea",945.5,313.5,"L",""],
+ "australia":["Australia",952,384.5,"L",""],
+ "nz":["New Zealand",1018.5,416,"L",""],
+ "egypt":["Egypt / Suez",545.5,233,"L","UK"],
+ "morocco":["Morocco",406,207,"L","FRA"],
+ "algeria":["Algeria",435,229,"L","FRA"],
+ "libya":["Libya",503.5,233,"L","ITA"],
+ "wafrica":["West Africa",392,266,"L",""],
+ "cafrica":["Central Africa",477,283.5,"L",""],
+ "eafrica":["East Africa",557,310,"L",""],
+ "safrica":["Southern Africa",514,360.5,"L",""],
+ "southafrica":["South Africa",483,395,"L",""],
+ "madagascar":["Madagascar",628,360,"L",""],
+ "npac_e":["N. Pacific (East)",0,168,"S",""],
+ "spac_e":["S. Pacific (East)",0,441.5,"S",""],
+ "caribsea":["Caribbean Sea",173,258,"S",""],
+ "atl_w":["W. Atlantic",263,177,"S","USA"],
+ "atl_n":["N. Atlantic",311,100.5,"S","UK"],
+ "atl_mid":["Mid Atlantic",312,246.5,"S",""],
+ "atl_e":["E. Atlantic",352,186.5,"S","UK"],
+ "atl_s":["S. Atlantic",347,441.5,"S",""],
+ "arctic":["Arctic Ocean",570.5,0,"S",""],
+ "arctic_w":["Canadian Arctic",190.5,0,"S",""],
+ "hudson":["Hudson Bay",202.5,77.5,"S",""],
+ "northsea":["North Sea",418,62,"S","UK"],
+ "baltic":["Baltic Sea",486.5,92.5,"S",""],
+ "channel":["English Channel",395.5,119.5,"S","UK"],
+ "bay":["Bay of Biscay",362.5,130,"S",""],
+ "westmed":["W. Mediterranean",443.5,175,"S",""],
+ "centralmed":["Central Mediterranean",471.5,182.5,"S","ITA"],
+ "eastmed":["E. Mediterranean",550,199,"S","UK"],
+ "blacksea":["Black Sea",569.5,162.5,"S",""],
+ "redsea":["Red Sea",533.5,278.5,"S","UK"],
+ "arabian":["Arabian Sea",680,282,"S","UK"],
+ "indian":["Indian Ocean",742.5,363,"S","UK"],
+ "southind":["S. Indian Ocean",643.5,441.5,"S",""],
+ "southchina":["S. China Sea",857,257,"S",""],
+ "eastchina":["East China Sea",909.5,232.5,"S",""],
+ "yellowsea":["Yellow Sea",884.5,184.5,"S","JPN"],
+ "okhotsk":["Sea of Okhotsk",1076.5,0,"S",""],
+ "japansea":["Sea of Japan",1003,187.5,"S",""],
+ "westpac":["W. Pacific",1026.5,261.5,"S","JPN"],
+ "javasea":["Java Sea",840,441.5,"S",""],
+ "coral":["Coral Sea",985.5,328,"S",""],
+ "pacific_s":["S. Pacific",1076.5,441.5,"S","USA"]
 };
-const dirs=[[1,0],[-1,0],[0,1],[0,-1],[1,-1],[-1,1]];
-const keyByQR={}; Object.entries(H).forEach(([id,h])=>keyByQR[h[1]+","+h[2]]=id);
-function neighbors(id){const h=H[id];return dirs.map(d=>keyByQR[(h[1]+d[0])+","+(h[2]+d[1])]).filter(Boolean)}
+// Explicit adjacency graph (hand-reviewed, includes sea lanes and the Pacific wrap-around). Not derived at runtime.
+const ADJ_EDGES=`
+alaska-arctic_w alaska-canada_w alaska-npac_e algeria-cafrica algeria-centralmed algeria-libya algeria-morocco algeria-wafrica
+arabian-eafrica arabian-india arabian-indian arabian-iraq arabian-redsea arabian-saudi arctic-atl_n arctic-esiberia
+arctic-finland arctic-leningrad arctic-moscow arctic-northrussia arctic-northsea arctic-norway arctic-okhotsk arctic-siberia
+arctic-sweden arctic-urals arctic_w-atl_n arctic_w-canada arctic_w-canada_w arctic_w-greenland arctic_w-hudson arctic_w-npac_e
+argentina-atl_s argentina-brazil argentina-peru argentina-spac_e atl_e-atl_mid atl_e-atl_w atl_e-bay atl_e-morocco
+atl_e-spain atl_e-wafrica atl_e-westmed atl_mid-atl_s atl_mid-atl_w atl_mid-brazil atl_mid-caribsea atl_mid-venezuela
+atl_mid-wafrica atl_n-atl_w atl_n-bay atl_n-canada atl_n-greenland atl_n-iceland atl_n-ireland atl_n-northsea atl_n-scotland
+atl_s-brazil atl_s-cafrica atl_s-safrica atl_s-southafrica atl_s-southind atl_s-wafrica atl_w-canada atl_w-caribsea
+atl_w-usa atl_w-usa_south australia-coral australia-javasea austria-berlin austria-eastprussia austria-hungary austria-italy_n
+austria-poland_w austria-yugo baltic-berlin baltic-denmark baltic-eastprussia baltic-finland baltic-sweden baltstates-eastprussia
+baltstates-leningrad bavaria-berlin bavaria-frsouth bavaria-italy_n bavaria-ruhr bavaria-swiss bay-bordeaux bay-channel
+bay-ireland bay-normandy bay-northsea bay-spain belarus-kiev belarus-leningrad belarus-moscow belarus-northrussia
+belarus-poland_e belarus-stalingrad belarus-ukraine berlin-denmark berlin-eastprussia berlin-low berlin-ruhr blacksea-bulgaria
+blacksea-caucasus blacksea-greece blacksea-kiev blacksea-poland_e blacksea-romania blacksea-turkey blacksea-ukraine
+bordeaux-frsouth bordeaux-normandy bordeaux-paris bordeaux-spain brazil-peru brazil-venezuela britain-channel britain-northsea
+britain-scotland bulgaria-greece bulgaria-romania bulgaria-turkey bulgaria-yugo burma-china_e burma-chongqing burma-india
+burma-indian burma-indochina burma-malaya burma-southchina cafrica-eafrica cafrica-libya cafrica-safrica cafrica-wafrica
+camerica-caribbean camerica-caribsea camerica-mexico canada-canada_w canada-hudson canada-usa canada_w-npac_e canada_w-usa
+canada_w-usa_west caribbean-caribsea caribsea-mexico caribsea-npac_e caribsea-peru caribsea-spac_e caribsea-usa_south
+caribsea-venezuela caucasus-iraq caucasus-stalingrad caucasus-turkey caucasus-ukraine centralmed-eastmed centralmed-greece
+centralmed-italy_n centralmed-libya centralmed-rome centralmed-sicily centralmed-westmed centralmed-yugo channel-ireland
+channel-normandy channel-northsea china_e-china_n china_e-chongqing china_e-eastchina china_e-indochina china_e-southchina
+china_e-yellowsea china_n-china_w china_n-chongqing china_n-manchuria china_n-mongolia china_n-yellowsea china_w-chongqing
+china_w-india china_w-kazakh china_w-mongolia china_w-urals chongqing-india coral-javasea coral-newguinea coral-pacific_s
+coral-westpac dei-javasea dei-malaya dei-newguinea dei-southchina denmark-low denmark-northsea eafrica-egypt eafrica-redsea
+eafrica-safrica eafrica-southind eastchina-japan eastchina-japansea eastchina-korea eastchina-philippines eastchina-southchina
+eastchina-westpac eastchina-yellowsea eastmed-egypt eastmed-greece eastmed-levant eastmed-libya eastmed-redsea eastmed-saudi
+eastmed-sicily eastmed-turkey eastmed-yugo eastprussia-leningrad eastprussia-poland_w egypt-levant egypt-libya egypt-redsea
+esiberia-kamchatka esiberia-manchuria esiberia-okhotsk esiberia-siberia finland-leningrad finland-sweden frsouth-italy_n
+frsouth-paris frsouth-ruhr frsouth-spain frsouth-swiss frsouth-westmed greece-turkey greece-yugo greenland-iceland
+hungary-yugo india-indian india-iraq india-kazakh indian-javasea indian-madagascar indian-malaya indian-redsea indian-southchina
+indian-southind indochina-southchina iraq-saudi iraq-stalingrad iraq-turkey italy_n-rome italy_n-swiss italy_n-westmed
+japan-japansea japan-korea japan-okhotsk japansea-okhotsk japansea-westpac javasea-malaya javasea-newguinea javasea-philippines
+javasea-southchina kamchatka-okhotsk kazakh-moscow kazakh-stalingrad kazakh-urals kiev-poland_e kiev-ukraine korea-manchuria
+korea-yellowsea leningrad-northrussia leningrad-poland_e leningrad-poland_w levant-redsea levant-saudi libya-morocco
+low-northsea low-paris low-ruhr madagascar-southind malaya-southchina manchuria-mongolia manchuria-siberia manchuria-yellowsea
+mexico-npac_e mexico-usa_south mexico-usa_west mongolia-siberia mongolia-urals morocco-spain morocco-wafrica morocco-westmed
+moscow-northrussia moscow-stalingrad moscow-urals newguinea-westpac normandy-paris northsea-norway northsea-scotland
+norway-sweden npac_e-okhotsk npac_e-spac_e npac_e-usa_west npac_e-westpac nz-pacific_s pacific_s-spac_e pacific_s-westpac
+paris-ruhr peru-spac_e peru-venezuela philippines-southchina philippines-westpac poland_e-poland_w poland_e-romania
+poland_w-romania poland_w-yugo redsea-saudi romania-yugo rome-sicily safrica-southafrica safrica-southind saudi-turkey
+siberia-urals southafrica-southind spain-westmed stalingrad-ukraine stalingrad-urals turkey-ukraine usa-usa_south
+usa-usa_west usa_south-usa_west
+`;
+const NB={};Object.keys(H).forEach(id=>NB[id]=new Set());
+ADJ_EDGES.trim().split(/\s+/).forEach(e=>{const [a,b]=e.split("-");if(!H[a]||!H[b])throw new Error("Bad edge "+e);NB[a].add(b);NB[b].add(a)});
+function neighbors(id){return [...NB[id]]}
 const factions=Object.keys(P).filter(x=>x!=="NEU");
 let S={}, N={}, active=[], ai=new Set(), difficulty="Normal", idx=0, round=1, globalTurn=0, mode=null, pool=0, seaPool=0, actionUsed=false, selected=null, peaceUsed=false, treaties={}, gameStarted=false, pendingChoices=0;
 
@@ -216,24 +334,102 @@ initialState();
 
 function treatyKey(a,b){return [a,b].sort().join("-")}
 function treatyActive(a,b){return (treaties[treatyKey(a,b)]||0)>globalTurn}
-function hexPts(cx,cy,r=28){let p=[];for(let i=0;i<6;i++){let a=Math.PI/180*(60*i-30);p.push((cx+r*Math.cos(a))+","+(cy+r*Math.sin(a)))}return p.join(" ")}
-function pos(q,r){return [530+q*57,260+r*52+q*26]}
-function svg(tag,attrs){const e=document.createElementNS("http://www.w3.org/2000/svg",tag);Object.entries(attrs||{}).forEach(([k,v])=>e.setAttribute(k,v));return e}
-
-function draw(){
+/* ---------- Board: illustrated map + transparent SVG hit regions ---------- */
+const BOARD_W=1077,BOARD_H=442,SVGNS="http://www.w3.org/2000/svg";
+function svg(tag,attrs){const e=document.createElementNS(SVGNS,tag);Object.entries(attrs||{}).forEach(([k,v])=>e.setAttribute(k,v));return e}
+const regionEl={},seaTintEl={};let markerLayer,hoverId=null;
+function buildBoard(){
  const m=document.getElementById("map");m.innerHTML="";
+ const defs=svg("defs");const flt=svg("filter",{id:"seaSoft",x:"-10%",y:"-10%",width:"120%",height:"120%"});flt.append(svg("feGaussianBlur",{stdDeviation:"5"}));defs.append(flt);
+ const seaTint=svg("g",{id:"seaTint",filter:"url(#seaSoft)"}),seaG=svg("g",{id:"seaLayer"}),landG=svg("g",{id:"landLayer"});markerLayer=svg("g",{id:"markers"});
  Object.entries(H).forEach(([id,h])=>{
-   const [x,y]=pos(h[1],h[2]); const st=S[id], own=st.owner, sea=h[3]==="S";
-   let fill=own==="NEU"?(sea?"#a9c8d7":"#d8d1b8"):P[own].color;
-   if(sea && own!=="NEU") fill=blend(fill,"#c7e0ec",.38);
-   let cl="hex"; if(h[5])cl+=" capital"; if(isTarget(id))cl+=" target";
-   const p=svg("polygon",{points:hexPts(x,y),fill,class:cl});p.onclick=()=>clickHex(id);m.appendChild(p);
-   const t=svg("text",{x,y:y-2,class:"label "+(sea?"seaLabel":"")});t.textContent=h[0];m.appendChild(t);
-   const s=svg("text",{x,y:y+11,class:"label tiny "+(sea?"seaLabel":"")});
-   let marks=h[5]?"★ ":""; if(st.owner!=="NEU" && !isConnected(id,st.owner) && !sea) marks+="⚠ ";
-   s.textContent=marks+(own==="NEU"?"":P[own].name.replace("United ","").replace("Soviet ",""));
-   m.appendChild(s);
+   const p=svg("path",{d:window.WW2_REGION_PATHS[id],class:"region "+(h[3]==="S"?"sea":"land"),"fill-rule":"evenodd"});
+   if(h[3]==="S"){const t=svg("path",{d:window.WW2_REGION_PATHS[id],class:"seaTint"});seaTintEl[id]=t;seaTint.appendChild(t)}
+   p.dataset.id=id;regionEl[id]=p;(h[3]==="S"?seaG:landG).appendChild(p);
+   p.addEventListener("pointerenter",e=>{if(e.pointerType==="mouse"){hoverId=id;showTip(id)}});
+   p.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse"&&hoverId===id){hoverId=null;showTip(selected)}});
  });
+ m.append(defs,seaTint,seaG,landG,markerLayer);
+}
+function draw(){
+ if(!regionEl.usa)buildBoard();
+ markerLayer.innerHTML="";
+ Object.entries(H).forEach(([id,h])=>{
+   const own=S[id].owner,sea=h[3]==="S",p=regionEl[id];
+   p.style.setProperty("--fc",own==="NEU"?"transparent":P[own].color);
+   p.classList.toggle("owned",own!=="NEU");
+   if(sea){seaTintEl[id].style.fill=own==="NEU"?"transparent":P[own].color}
+   p.classList.toggle("target",isTarget(id));
+   p.classList.toggle("selected",selected===id);
+   if(h[5]){
+     const c=svg("circle",{cx:h[1],cy:h[2],r:4.6,class:"capRing"});c.style.stroke=own==="NEU"?"#f2d27a":P[own].color;markerLayer.appendChild(c);
+     if(id==="paris"){markerLayer.appendChild(svg("path",{d:starPath(h[1],h[2],3.2),class:"capStar"}))}
+   }
+   if(!sea&&own!=="NEU"&&!isConnected(id,own)){
+     const [x,y]=window.WW2_REGION_ANCHORS[id];
+     const g=svg("g",{class:"cutoff",transform:`translate(${x},${y})`});g.append(svg("circle",{r:2.6}));const t=svg("text",{y:1.2});t.textContent="!";g.append(t);markerLayer.appendChild(g);
+   }
+ });
+ showTip(hoverId||selected);
+}
+function starPath(cx,cy,r){let d="";for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5,rr=i%2?r*.45:r;d+=(i?"L":"M")+(cx+rr*Math.cos(a)).toFixed(2)+","+(cy+rr*Math.sin(a)).toFixed(2)}return d+"Z"}
+function showTip(id){
+ const tip=document.getElementById("tip");
+ if(!id||!H[id]){tip.hidden=true;return}
+ const h=H[id],own=S[id].owner;
+ tip.innerHTML=`<b>${h[5]?"★ ":""}${h[0]}</b><span>${own==="NEU"?(h[3]==="S"?"Open sea":"Uncommitted"):P[own].name}${isTarget(id)?" • legal target":""}</span>`;
+ const [ax,ay]=h[5]?[h[1],h[2]]:window.WW2_REGION_ANCHORS[id];
+ const vp=document.getElementById("viewport").getBoundingClientRect();
+ let x=view.x+ax*view.s,y=view.y+ay*view.s;
+ tip.hidden=false;tip.style.left=Math.max(4,Math.min(vp.width-tip.offsetWidth-4,x-tip.offsetWidth/2))+"px";
+ tip.style.top=Math.max(4,y-tip.offsetHeight-10)+"px";
+}
+/* ---------- pan / pinch / wheel zoom ---------- */
+const view={x:0,y:0,s:1};
+function vpSize(){const r=document.getElementById("viewport").getBoundingClientRect();return {w:r.width,h:r.height}}
+function minScale(){const {w,h}=vpSize();return Math.min(w/BOARD_W,h/BOARD_H)}
+function coverScale(){const {w,h}=vpSize();return Math.max(w/BOARD_W,h/BOARD_H)}
+function clampView(){
+ const {w,h}=vpSize();view.s=Math.max(minScale(),Math.min(view.s,coverScale()*7));
+ const bw=BOARD_W*view.s,bh=BOARD_H*view.s;
+ view.x=bw<=w?(w-bw)/2:Math.min(0,Math.max(w-bw,view.x));
+ view.y=bh<=h?(h-bh)/2:Math.min(0,Math.max(h-bh,view.y));
+}
+function applyView(){clampView();document.getElementById("board").style.transform=`translate(${view.x}px,${view.y}px) scale(${view.s})`;document.getElementById("viewport").style.setProperty("--zoom",view.s);showTip(hoverId||selected)}
+function zoomAt(f,cx,cy){const bx=(cx-view.x)/view.s,by=(cy-view.y)/view.s;view.s*=f;clampView();view.x=cx-bx*view.s;view.y=cy-by*view.s;applyView()}
+function focusOn(x0,y0,x1,y1){const {w,h}=vpSize();view.s=Math.min(w/(x1-x0),h/(y1-y0));clampView();view.x=w/2-(x0+x1)/2*view.s;view.y=h/2-(y0+y1)/2*view.s;applyView()}
+function fitWorld(){const {w,h}=vpSize();view.s=coverScale();clampView();view.x=w/2-520*view.s;view.y=h/2-150*view.s;applyView()}
+function setupViewport(){
+ const vp=document.getElementById("viewport"),pts=new Map();let start=null,moved=false,downTarget=null;
+ vp.addEventListener("pointerdown",e=>{
+   if(e.target.closest(".zoombar"))return;
+   document.querySelector(".maphint")?.classList.add("gone");
+   pts.set(e.pointerId,{x:e.clientX,y:e.clientY});vp.setPointerCapture(e.pointerId);
+   if(pts.size===1){moved=false;downTarget=e.target.closest(".region")?.dataset.id||null;start={x:e.clientX,y:e.clientY,vx:view.x,vy:view.y}}
+   else{moved=true;start=pinchState()}
+ });
+ vp.addEventListener("pointermove",e=>{
+   if(!pts.has(e.pointerId))return;pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+   if(pts.size===1&&start&&start.vx!==undefined){const dx=e.clientX-start.x,dy=e.clientY-start.y;if(Math.hypot(dx,dy)>7)moved=true;if(moved){view.x=start.vx+dx;view.y=start.vy+dy;applyView()}}
+   else if(pts.size>=2&&start&&start.d){const p=pinchState(),r=vp.getBoundingClientRect();
+     const bx=(start.cx-r.left-start.vx)/start.s,by=(start.cy-r.top-start.vy)/start.s;
+     view.s=start.s*p.d/start.d;clampView();view.x=p.cx-r.left-bx*view.s;view.y=p.cy-r.top-by*view.s;applyView()}
+ });
+ const end=e=>{
+   if(!pts.has(e.pointerId))return;pts.delete(e.pointerId);
+   if(pts.size===0){if(!moved&&e.type==="pointerup"){if(downTarget)clickHex(downTarget);else{selected=null;update()}}start=null}
+   else if(pts.size===1){const [q]=pts.values();start={x:q.x,y:q.y,vx:view.x,vy:view.y}}
+ };
+ vp.addEventListener("pointerup",end);vp.addEventListener("pointercancel",end);
+ function pinchState(){const [a,b]=[...pts.values()];return {d:Math.hypot(a.x-b.x,a.y-b.y)||1,cx:(a.x+b.x)/2,cy:(a.y+b.y)/2,s:view.s,vx:view.x,vy:view.y}}
+ vp.addEventListener("wheel",e=>{e.preventDefault();const r=vp.getBoundingClientRect();zoomAt(Math.exp(-e.deltaY*(e.ctrlKey?0.01:0.0015)),e.clientX-r.left,e.clientY-r.top)},{passive:false});
+ ["gesturestart","gesturechange"].forEach(t=>vp.addEventListener(t,e=>e.preventDefault()));
+ document.getElementById("zin").onclick=()=>{const {w,h}=vpSize();zoomAt(1.5,w/2,h/2)};
+ document.getElementById("zout").onclick=()=>{const {w,h}=vpSize();zoomAt(1/1.5,w/2,h/2)};
+ document.getElementById("zfit").onclick=()=>{view.s=minScale();applyView()};
+ document.getElementById("zeu").onclick=()=>focusOn(372,40,660,205);
+ document.getElementById("zas").onclick=()=>focusOn(640,40,1077,340);
+ let lastW=0;new ResizeObserver(()=>{const {w}=vpSize();if(!lastW)fitWorld();else applyView();lastW=w}).observe(vp);
 }
 function blend(hex1,hex2,t){const a=parseInt(hex1.slice(1),16),b=parseInt(hex2.slice(1),16),ar=a>>16,ag=a>>8&255,ab=a&255,br=b>>16,bg=b>>8&255,bb=b&255;return "#"+(((Math.round(ar*(1-t)+br*t)<<16)|(Math.round(ag*(1-t)+bg*t)<<8)|Math.round(ab*(1-t)+bb*t))).toString(16).padStart(6,"0")}
 function current(){return active[idx]}
@@ -252,6 +448,7 @@ function isTarget(id){
  if(mode==="sail")return h[3]==="S"&&st.owner==="NEU"&&legalAdjacent(id,f);
  if(mode==="conquer"){
    if(st.owner===f||st.owner==="NEU")return false;
+   if(h[3]==="L"&&pool<=0)return false; // only sea-only points left (Mare Nostrum)
    if(h[3]==="S"&&!N[f].perks.has("naval"))return false;
    if(!legalAdjacent(id,f))return false;
    if(isCapital(id)&&round<=4)return false;
@@ -292,12 +489,12 @@ function action(name){
  if(N[f].resist){return resistanceRoll(f)}
  if(name==="conquer"){
    let d=conqDie(f),r=rollDie(d,f),bonus=N[f].perks.has("air")?1:0;if(f==="FRA"&&N[f].perks.has("military")&&treatyActive("FRA","UK"))bonus++;
-   pool=r+bonus;seaPool=f==="ITA"?2:0;mode="conquer";actionUsed=true;status(`${P[f].name} rolled d${d}: ${r}${bonus?` + ${bonus}`:""} = ${pool} conquest points${seaPool?` + ${seaPool} Mediterranean sea-only points`:""}. Click adjacent enemy hexes.`);
+   pool=r+bonus;seaPool=f==="ITA"?2:0;mode="conquer";actionUsed=true;status(`${P[f].name} rolled d${d}: ${r}${bonus?` + ${bonus}`:""} = ${pool} conquest points${seaPool?` + ${seaPool} Mediterranean sea-only points`:""}. Tap adjacent enemy regions (highlighted).`);
  } else if(name==="expand"){
    let d=expDie(f),r=rollDie(d,f);pool=r;mode="expand";actionUsed=true;status(`Expand d${d}: ${r}. Claim adjacent uncommitted land, 1 point each.`);
  } else if(name==="sail"){
    if(!N[f].perks.has("naval"))return status("Naval Power is required before you can Sail.");
-   let r=rollDie(8,f);pool=r;mode="sail";actionUsed=true;status(`Sail d8: ${r}. Claim adjacent uncommitted sea hexes.`);
+   let r=rollDie(8,f);pool=r;mode="sail";actionUsed=true;status(`Sail d8: ${r}. Claim adjacent open sea zones.`);
  } else if(name==="tech"){
    let r=rollDie(12,f)+(f==="USA"?1:0);
    if(N[f].perks.has("intel")&&N[f].rerollReady){let r2=rollDie(12,f)+(f==="USA"?1:0);r=Math.max(r,r2);N[f].rerollReady=false}
@@ -310,7 +507,7 @@ function action(name){
 function clickHex(id){
  selected=id;
  if(!mode){update();return}
- if(!isTarget(id)){status("That hex is not a legal target for the current action.");update();return}
+ if(!isTarget(id)){status("That region is not a legal target for the current action.");update();return}
  let f=current(),h=H[id],old=S[id].owner;
  if(mode==="expand"||mode==="sail"){S[id].owner=f;pool--;log(`${P[f].name} claims ${h[0]}.`)}
  else if(mode==="conquer"){
@@ -412,11 +609,11 @@ function update(){
  let n=N[f];document.getElementById("nation").innerHTML=`<div style="font-weight:800"><span class="dot" style="background:${P[f].color}"></span> ${P[f].name}${ai.has(f)?" • AI":""}</div><div class="help" style="margin:5px 0">${P[f].ability}</div><div class="statrow"><div class="stat"><b>${score(f).toFixed(1)}</b><span>VP</span></div><div class="stat"><b>${n.tech}</b><span>Technology</span></div><div class="stat"><b>${n.influence}</b><span>Influence</span></div><div class="stat"><b>d${conqDie(f)}</b><span>Conquer</span></div></div>${n.resist?'<div class="status" style="margin-top:7px;color:#ffd584"><b>RESISTANCE MODE</b> — your only core action is a resistance roll.</div>':""}${n.immunity?`<div class="help">Diplomatic immunity: ${n.immunity} turn(s)</div>`:""}`;
  document.getElementById("perks").innerHTML=[...n.perks].map(id=>{let p=[...techPerks,...infPerks].find(x=>x.id===id);return `<div class="perk owned"><b>✓ ${p?.name||id}</b><div class="help">${p?.desc||""}</div></div>`}).join("")||'<div class="help">No upgrades yet.</div>';
  document.getElementById("scoreList").innerHTML=active.slice().sort((a,b)=>score(b)-score(a)).map(x=>`${P[x].name}: <b>${score(x).toFixed(1)}</b> VP • ${owned(x,"L").length} land • ${owned(x,"S").length} sea`).join("<br>");
- let h=selected&&H[selected];document.getElementById("hexInfo").innerHTML=h?`<b>${h[0]}</b><br>${h[3]==="S"?"Sea":"Land"} hex • ${S[selected].owner==="NEU"?"Uncommitted":P[S[selected].owner].name}${h[5]?" • ★ Capital":""}<br>Adjacent: ${neighbors(selected).map(x=>H[x][0]).join(", ")}`:"Click a hex.";
+ let h=selected&&H[selected];document.getElementById("hexInfo").innerHTML=h?`<b>${h[0]}</b><br>${h[3]==="S"?"Sea zone":"Land region"} • ${S[selected].owner==="NEU"?"Uncommitted":P[S[selected].owner].name}${h[5]?" • ★ Capital":""}<br>Adjacent: ${neighbors(selected).map(x=>H[x][0]).join(", ")}`:"Tap a region on the map.";
  let human=!ai.has(f),disable=!human||actionUsed||pendingChoices;["conquer","expand","tech","influence"].forEach(id=>document.getElementById(id).disabled=disable);
  document.getElementById("sail").disabled=disable||!n.perks.has("naval");document.getElementById("peace").disabled=!human||peaceUsed||pendingChoices;document.getElementById("end").disabled=!human||pendingChoices;document.getElementById("cancel").disabled=!human||!mode;
 }
 document.getElementById("conquer").onclick=()=>action("conquer");document.getElementById("expand").onclick=()=>action("expand");document.getElementById("sail").onclick=()=>action("sail");document.getElementById("tech").onclick=()=>action("tech");document.getElementById("influence").onclick=()=>action("influence");document.getElementById("peace").onclick=openPeace;document.getElementById("cancel").onclick=cancelMode;document.getElementById("end").onclick=endTurn;
-draw();
+buildBoard();draw();setupViewport();
 </script>
 </body></html>
