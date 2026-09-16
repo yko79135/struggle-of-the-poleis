@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<link rel="preload" href="board.jpg" as="image">
 <title>Struggle of the Nations: 1939–1945</title>
 <style>
 :root{--bg:#0e1217;--panel:#171d24;--panel2:#202834;--line:#394656;--text:#edf3f8;--muted:#aeb9c4;--gold:#f2c14e;--sea:#aec7d5;--land:#d9d3bc;--ok:#71d294;--bad:#ef7a73}
@@ -18,8 +17,16 @@ h1{font-size:21px;margin:0}.sub{font-size:11px;color:var(--muted);margin-top:2px
 #viewport{position:relative;height:min(calc(100vh - 150px),calc((100vw - 400px) * 0.4104));min-height:320px;background:#0b1a26;border:1px solid #536674;border-radius:14px;overflow:hidden;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;cursor:grab}
 #viewport:active{cursor:grabbing}
 #board{position:absolute;left:0;top:0;width:1077px;height:442px;transform-origin:0 0;will-change:transform}
-#board img{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;-webkit-user-drag:none}
 #map{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+/* Vector base map, drawn from Natural Earth geometry (see map-regions.js) */
+#baseLayer{pointer-events:none}
+#baseLayer .landBase{fill:#c3b994;stroke:#22323d;stroke-width:.5;stroke-linejoin:round}
+/* Coastal shelf halo. Drawn as two soft strokes rather than a Gaussian blur:
+   blurring a path this size froze the renderer. */
+#baseLayer .shelfOuter{fill:none;stroke:#8fd2f0;stroke-opacity:.13;stroke-width:3.5;stroke-linejoin:round}
+#baseLayer .shelfInner{fill:none;stroke:#a8e0f5;stroke-opacity:.22;stroke-width:1.6;stroke-linejoin:round}
+#baseLayer .grat{stroke:#dff1ff;stroke-opacity:.07;stroke-width:.35;vector-effect:non-scaling-stroke}
+#baseLayer .borders{fill:none;stroke:#4a3f22;stroke-opacity:.45;stroke-width:1;vector-effect:non-scaling-stroke}
 .region{fill:var(--fc,transparent);fill-opacity:0;stroke:transparent;stroke-linejoin:round;cursor:pointer;pointer-events:all;transition:fill-opacity .15s,stroke .15s;--z:var(--zoom,1)}
 .region.land{stroke-width:calc(6px / var(--z))}
 .region.sea{stroke-width:0}
@@ -79,7 +86,7 @@ table{width:100%;border-collapse:collapse;font-size:11px}td,th{padding:5px;borde
   </div>
   <div id="mapwrap">
    <div id="viewport">
-    <div id="board"><img src="board.jpg" alt="Illustrated world map, 1939–1945" draggable="false"><svg id="map" viewBox="0 0 1077 442" preserveAspectRatio="none"></svg></div>
+    <div id="board"><svg id="map" viewBox="0 0 1077 442" preserveAspectRatio="none" role="img" aria-label="World map, 1939–1945"></svg></div>
     <div id="tip" hidden></div>
     <div class="zoombar"><button id="zin" title="Zoom in">+</button><button id="zout" title="Zoom out">−</button><button id="zfit" class="txt" title="Whole world">World</button><button id="zeu" class="txt" title="Zoom to Europe">Europe</button><button id="zas" class="txt" title="Zoom to Asia">Asia</button></div>
     <div class="maphint">Drag to pan • pinch or scroll to zoom • tap a region</div>
@@ -150,127 +157,127 @@ const infPerks=[
 ];
 
 const H={
- "alaska":["Alaska",45.5,57,"L","USA"],
- "canada_w":["Western Canada",126.5,78,"L",""],
- "canada":["Eastern Canada",240,105.5,"L",""],
- "usa_west":["Western USA",119,151,"L","USA"],
- "usa":["Eastern USA",165,157,"L","USA",1],
- "usa_south":["Southern USA",201,169.5,"L","USA"],
- "mexico":["Mexico",145.5,199,"L",""],
- "camerica":["Central America",191.5,234.5,"L",""],
- "caribbean":["Cuba & Caribbean",210,211,"L",""],
- "venezuela":["Venezuela & Colombia",217,265.5,"L",""],
- "brazil":["Brazil",288.5,315.5,"L",""],
- "peru":["Peru & Bolivia",213,310,"L",""],
- "argentina":["Argentina & Chile",236,372,"L",""],
- "greenland":["Greenland",316,27,"L",""],
- "iceland":["Iceland",361,50.5,"L",""],
- "britain":["Britain",405,108,"L","UK",1],
- "scotland":["Scotland",407,84,"L","UK"],
- "ireland":["Ireland",391,106,"L",""],
- "norway":["Norway",459,62,"L",""],
- "sweden":["Sweden",472.5,80,"L",""],
- "finland":["Finland",506,60.5,"L",""],
- "leningrad":["Leningrad",541.5,71.5,"L","USSR"],
- "northrussia":["Northern Russia",592.5,64,"L","USSR"],
- "baltstates":["Baltic States",526.5,88,"L",""],
- "denmark":["Denmark",454,90,"L",""],
- "low":["Low Countries",458,102.5,"L",""],
- "normandy":["Normandy",412,130.5,"L","FRA"],
- "paris":["Paris / Northern France",432.5,127.5,"L","FRA",1],
- "bordeaux":["Bordeaux / Western France",419.5,143,"L","FRA"],
- "frsouth":["Southern France",439.5,146,"L","FRA"],
- "swiss":["Switzerland",455.5,143,"L",""],
- "spain":["Spain",402.5,169.5,"L",""],
- "ruhr":["Ruhr",459.5,119,"L","GER"],
- "berlin":["Berlin / Central Germany",483,131,"L","GER",1],
- "eastprussia":["East Prussia",506.5,92.5,"L","GER"],
- "bavaria":["Bavaria",466,135,"L","GER"],
- "austria":["Austria",508,142.5,"L",""],
- "italy_n":["Northern Italy",474,152,"L","ITA"],
- "rome":["Rome",488,173,"L","ITA",1],
- "sicily":["Southern Italy & Sicily",512.5,174,"L","ITA"],
- "hungary":["Hungary",506.5,158.5,"L",""],
- "yugo":["Balkans (Yugoslavia)",526.5,162,"L",""],
- "poland_w":["Western Poland",529,120.5,"L",""],
- "poland_e":["Eastern Poland",556.5,123.5,"L",""],
- "romania":["Romania",550.5,151.5,"L",""],
- "bulgaria":["Bulgaria",551.5,165,"L",""],
- "greece":["Greece",534.5,181.5,"L",""],
- "belarus":["Belarus",576.5,96,"L","USSR"],
- "kiev":["Kiev",583.5,139,"L","USSR"],
- "ukraine":["Ukraine",618,152,"L","USSR"],
- "caucasus":["Caucasus",637.5,165.5,"L","USSR"],
- "moscow":["Moscow",677,97,"L","USSR",1],
- "stalingrad":["Stalingrad",672.5,157.5,"L","USSR"],
- "urals":["Urals",722,109,"L","USSR"],
- "kazakh":["Kazakhstan",703,148.5,"L","USSR"],
- "siberia":["Siberia",788.5,69,"L","USSR"],
- "esiberia":["Eastern Siberia",882,68.5,"L",""],
- "kamchatka":["Kamchatka",978.5,87,"L",""],
- "mongolia":["Mongolia",809,134,"L",""],
- "manchuria":["Manchuria",885,131.5,"L","JPN"],
- "korea":["Korea",913,175.5,"L","JPN"],
- "japan":["Japan",934.5,187,"L","JPN",1],
- "china_w":["Western China",756.5,162.5,"L","CHN"],
- "china_n":["Northern China",821,168.5,"L","CHN"],
- "chongqing":["Chongqing",798,191.5,"L","CHN",1],
- "china_e":["Eastern China",846,200.5,"L","CHN"],
- "turkey":["Turkey",621,186.5,"L",""],
- "iraq":["Iraq",662.5,198,"L","UK"],
- "saudi":["Saudi Arabia",625.5,228,"L",""],
- "levant":["Levant",577,234.5,"L","UK"],
- "india":["India",710.5,213,"L","UK"],
- "burma":["Burma",804.5,231.5,"L","UK"],
- "indochina":["Indochina",811,245.5,"L",""],
- "malaya":["Malaya",806,301,"L",""],
- "dei":["Dutch East Indies",852.5,303.5,"L",""],
- "philippines":["Philippines",880.5,239,"L","USA"],
- "newguinea":["New Guinea",945.5,313.5,"L",""],
- "australia":["Australia",952,384.5,"L",""],
- "nz":["New Zealand",1018.5,416,"L",""],
- "egypt":["Egypt / Suez",545.5,233,"L","UK"],
- "morocco":["Morocco",406,207,"L","FRA"],
- "algeria":["Algeria",435,229,"L","FRA"],
- "libya":["Libya",503.5,233,"L","ITA"],
- "wafrica":["West Africa",392,266,"L",""],
- "cafrica":["Central Africa",477,283.5,"L",""],
- "eafrica":["East Africa",557,310,"L",""],
- "safrica":["Southern Africa",514,360.5,"L",""],
- "southafrica":["South Africa",483,395,"L",""],
- "madagascar":["Madagascar",628,360,"L",""],
- "npac_e":["N. Pacific (East)",0,168,"S",""],
- "spac_e":["S. Pacific (East)",0,441.5,"S",""],
- "caribsea":["Caribbean Sea",173,258,"S",""],
- "atl_w":["W. Atlantic",263,177,"S","USA"],
- "atl_n":["N. Atlantic",311,100.5,"S","UK"],
- "atl_mid":["Mid Atlantic",312,246.5,"S",""],
- "atl_e":["E. Atlantic",352,186.5,"S","UK"],
- "atl_s":["S. Atlantic",347,441.5,"S",""],
- "arctic":["Arctic Ocean",570.5,0,"S",""],
- "arctic_w":["Canadian Arctic",190.5,0,"S",""],
- "hudson":["Hudson Bay",202.5,77.5,"S",""],
- "northsea":["North Sea",418,62,"S","UK"],
- "baltic":["Baltic Sea",486.5,92.5,"S",""],
- "channel":["English Channel",395.5,119.5,"S","UK"],
- "bay":["Bay of Biscay",362.5,130,"S",""],
- "westmed":["W. Mediterranean",443.5,175,"S",""],
- "centralmed":["Central Mediterranean",471.5,182.5,"S","ITA"],
- "eastmed":["E. Mediterranean",550,199,"S","UK"],
- "blacksea":["Black Sea",569.5,162.5,"S",""],
- "redsea":["Red Sea",533.5,278.5,"S","UK"],
- "arabian":["Arabian Sea",680,282,"S","UK"],
- "indian":["Indian Ocean",742.5,363,"S","UK"],
- "southind":["S. Indian Ocean",643.5,441.5,"S",""],
- "southchina":["S. China Sea",857,257,"S",""],
- "eastchina":["East China Sea",909.5,232.5,"S",""],
- "yellowsea":["Yellow Sea",884.5,184.5,"S","JPN"],
- "okhotsk":["Sea of Okhotsk",1076.5,0,"S",""],
- "japansea":["Sea of Japan",1003,187.5,"S",""],
- "westpac":["W. Pacific",1026.5,261.5,"S","JPN"],
- "javasea":["Java Sea",840,441.5,"S",""],
- "coral":["Coral Sea",985.5,328,"S",""],
- "pacific_s":["S. Pacific",1076.5,441.5,"S","USA"]
+ "alaska":["Alaska",75.2,54.2,"L","USA"],
+ "canada_w":["Western Canada",182.2,73.9,"L",""],
+ "canada":["Eastern Canada",323,89.5,"L",""],
+ "usa_west":["Western USA",202.3,128.1,"L","USA"],
+ "usa":["Eastern USA",246.9,122.7,"L","USA",1],
+ "usa_south":["Southern USA",244.4,153.6,"L","USA"],
+ "mexico":["Mexico",234.1,179.6,"L",""],
+ "camerica":["Central America",282.7,208.2,"L",""],
+ "caribbean":["Cuba & Caribbean",309.7,188.2,"L",""],
+ "venezuela":["Venezuela & Colombia",333.5,231.6,"L",""],
+ "brazil":["Brazil",391.7,287.6,"L",""],
+ "peru":["Peru & Bolivia",345.2,300.9,"L",""],
+ "argentina":["Argentina & Chile",345.2,340.7,"L",""],
+ "greenland":["Greenland",411.3,29.5,"L",""],
+ "iceland":["Iceland",482.1,56.3,"L",""],
+ "britain":["Britain",534.7,92.8,"L","UK",1],
+ "scotland":["Scotland",525.8,80,"L","UK"],
+ "ireland":["Ireland",515.9,90,"L",""],
+ "norway":["Norway",568.2,65.8,"L",""],
+ "sweden":["Sweden",595.3,52.9,"L",""],
+ "finland":["Finland",620.5,60.4,"L",""],
+ "leningrad":["Leningrad",632.6,73.1,"L","USSR"],
+ "northrussia":["Northern Russia",727,51.3,"L","USSR"],
+ "baltstates":["Baltic States",610.9,83.7,"L",""],
+ "denmark":["Denmark",565.6,82.5,"L",""],
+ "low":["Low Countries",553.4,97.2,"L",""],
+ "normandy":["Normandy",539.9,104.9,"L","FRA"],
+ "paris":["Paris / Northern France",548.5,105.2,"L","FRA",1],
+ "bordeaux":["Bordeaux / Western France",539.3,111.7,"L","FRA"],
+ "frsouth":["Southern France",547.7,115.4,"L","FRA"],
+ "swiss":["Switzerland",560.9,110.1,"L",""],
+ "spain":["Spain",523.7,130,"L",""],
+ "ruhr":["Ruhr",562.1,97.8,"L","GER"],
+ "berlin":["Berlin / Central Germany",575.5,93.2,"L","GER",1],
+ "eastprussia":["East Prussia",603.5,87.6,"L","GER"],
+ "bavaria":["Bavaria",571.7,103.2,"L","GER"],
+ "austria":["Austria",584.7,103.3,"L",""],
+ "italy_n":["Northern Italy",571,114.8,"L","ITA"],
+ "rome":["Rome",577.5,122.4,"L","ITA",1],
+ "sicily":["Southern Italy & Sicily",582,137.6,"L","ITA"],
+ "hungary":["Hungary",599.8,108.4,"L",""],
+ "yugo":["Balkans (Yugoslavia)",596.8,117.8,"L",""],
+ "poland_w":["Western Poland",588.3,92.8,"L",""],
+ "poland_e":["Eastern Poland",599.9,96.2,"L",""],
+ "romania":["Romania",611.3,112.8,"L",""],
+ "bulgaria":["Bulgaria",614,122.6,"L",""],
+ "greece":["Greece",603.3,130.6,"L",""],
+ "belarus":["Belarus",623.5,88.9,"L","USSR"],
+ "kiev":["Kiev",630.9,102.7,"L","USSR"],
+ "ukraine":["Ukraine",643.2,104.8,"L","USSR"],
+ "caucasus":["Caucasus",671.3,119.7,"L","USSR"],
+ "moscow":["Moscow",652.2,76.3,"L","USSR",1],
+ "stalingrad":["Stalingrad",668.5,101.2,"L","USSR"],
+ "urals":["Urals",706.6,78.9,"L","USSR"],
+ "kazakh":["Kazakhstan",743,111.1,"L","USSR"],
+ "siberia":["Siberia",821.1,59.6,"L","USSR"],
+ "esiberia":["Eastern Siberia",897.4,61,"L",""],
+ "kamchatka":["Kamchatka",1043.7,56.2,"L",""],
+ "mongolia":["Mongolia",850.4,112.1,"L",""],
+ "manchuria":["Manchuria",911.3,112.1,"L","JPN"],
+ "korea":["Korea",921.7,141.1,"L","JPN"],
+ "japan":["Japan",954.3,141.1,"L","JPN",1],
+ "china_w":["Western China",802.5,139.5,"L","CHN"],
+ "china_n":["Northern China",874.9,135.8,"L","CHN"],
+ "chongqing":["Chongqing",858.7,166,"L","CHN",1],
+ "china_e":["Eastern China",885.8,163.3,"L","CHN"],
+ "turkey":["Turkey",637.5,133,"L",""],
+ "iraq":["Iraq",704.7,153.7,"L","UK"],
+ "saudi":["Saudi Arabia",677.3,186.2,"L",""],
+ "levant":["Levant",651.6,145.4,"L","UK"],
+ "india":["India",754,160.4,"L","UK"],
+ "burma":["Burma",825.5,185.1,"L","UK"],
+ "indochina":["Indochina",845.4,199.5,"L",""],
+ "malaya":["Malaya",878.9,242.4,"L",""],
+ "dei":["Dutch East Indies",880,252.7,"L",""],
+ "philippines":["Philippines",901.7,199.1,"L","USA"],
+ "newguinea":["New Guinea",966.3,266.4,"L",""],
+ "australia":["Australia",934.5,319,"L",""],
+ "nz":["New Zealand",1044.4,385.3,"L",""],
+ "egypt":["Egypt / Suez",631.1,194.9,"L","UK"],
+ "morocco":["Morocco",519.1,154.4,"L","FRA"],
+ "algeria":["Algeria",548,167.7,"L","FRA"],
+ "libya":["Libya",600,171.8,"L","ITA"],
+ "wafrica":["West Africa",521.6,206.4,"L",""],
+ "cafrica":["Central Africa",595.6,247.2,"L",""],
+ "eafrica":["East Africa",656.4,232.6,"L",""],
+ "safrica":["Southern Africa",622.1,303,"L",""],
+ "southafrica":["South Africa",611.8,339.2,"L",""],
+ "madagascar":["Madagascar",678.2,304.8,"L",""],
+ "npac_e":["N. Pacific (East)",100.1,145.5,"S",""],
+ "spac_e":["S. Pacific (East)",157.8,373.1,"S",""],
+ "caribsea":["Caribbean Sea",302.5,208.6,"S",""],
+ "atl_w":["W. Atlantic",358.5,152.2,"S","USA"],
+ "atl_n":["N. Atlantic",445.4,86.9,"S","UK"],
+ "atl_mid":["Mid Atlantic",426,197.9,"S",""],
+ "atl_e":["E. Atlantic",480.7,144.9,"S","UK"],
+ "atl_s":["S. Atlantic",497.4,351.6,"S",""],
+ "arctic":["Arctic Ocean",753.8,12.2,"S",""],
+ "arctic_w":["Canadian Arctic",152.8,16.6,"S",""],
+ "hudson":["Hudson Bay",280.5,71.5,"S",""],
+ "northsea":["North Sea",544.3,78.5,"S","UK"],
+ "baltic":["Baltic Sea",597.5,64.6,"S",""],
+ "channel":["English Channel",530,101.1,"S","UK"],
+ "bay":["Bay of Biscay",507.2,110.8,"S",""],
+ "westmed":["W. Mediterranean",556.8,127.2,"S",""],
+ "centralmed":["Central Mediterranean",592.4,145.4,"S","ITA"],
+ "eastmed":["E. Mediterranean",625.4,149.2,"S","UK"],
+ "blacksea":["Black Sea",632.2,119.3,"S",""],
+ "redsea":["Red Sea",659.1,197.2,"S","UK"],
+ "arabian":["Arabian Sea",728.2,222.9,"S","UK"],
+ "indian":["Indian Ocean",775.2,282.5,"S","UK"],
+ "southind":["S. Indian Ocean",712.8,379.5,"S",""],
+ "southchina":["S. China Sea",881.3,206.1,"S",""],
+ "eastchina":["East China Sea",931.4,176,"S",""],
+ "yellowsea":["Yellow Sea",906.3,146.8,"S","JPN"],
+ "okhotsk":["Sea of Okhotsk",985.7,91.4,"S",""],
+ "japansea":["Sea of Japan",970.7,141.1,"S",""],
+ "westpac":["W. Pacific",1010.2,191.3,"S","JPN"],
+ "javasea":["Java Sea",848.9,280.5,"S",""],
+ "coral":["Coral Sea",1007.1,304.5,"S",""],
+ "pacific_s":["S. Pacific",1029.9,358.7,"S","USA"]
 };
 // Explicit adjacency graph (hand-reviewed, includes sea lanes and the Pacific wrap-around). Not derived at runtime.
 const ADJ_EDGES=`
@@ -334,14 +341,34 @@ initialState();
 
 function treatyKey(a,b){return [a,b].sort().join("-")}
 function treatyActive(a,b){return (treaties[treatyKey(a,b)]||0)>globalTurn}
-/* ---------- Board: illustrated map + transparent SVG hit regions ---------- */
+/* ---------- Board: vector world map + transparent SVG hit regions ---------- */
 const BOARD_W=1077,BOARD_H=442,SVGNS="http://www.w3.org/2000/svg";
+/* Equirectangular, same px per degree in x and y, so the coastlines match the
+   real globe. Kept in sync with build.js, which generated map-regions.js. */
+const DEG=BOARD_W/360,NORTH_LAT=83.5;
+const lon2x=lon=>(lon+180)*DEG,lat2y=lat=>(NORTH_LAT-lat)*DEG;
 function svg(tag,attrs){const e=document.createElementNS(SVGNS,tag);Object.entries(attrs||{}).forEach(([k,v])=>e.setAttribute(k,v));return e}
 const regionEl={},seaTintEl={};let markerLayer,hoverId=null;
 function buildBoard(){
  const m=document.getElementById("map");m.innerHTML="";
  const defs=svg("defs");const flt=svg("filter",{id:"seaSoft",x:"-10%",y:"-10%",width:"120%",height:"120%"});flt.append(svg("feGaussianBlur",{stdDeviation:"5"}));defs.append(flt);
+ const og=svg("linearGradient",{id:"oceanGrad",x1:"0",y1:"0",x2:"0",y2:"1"});
+ [["0","#15394f"],["0.5","#0f2c40"],["1","#0a1f2e"]].forEach(([o,c])=>og.append(svg("stop",{offset:o,"stop-color":c})));
+ defs.append(og);
  const seaTint=svg("g",{id:"seaTint",filter:"url(#seaSoft)"}),seaG=svg("g",{id:"seaLayer"}),landG=svg("g",{id:"landLayer"});markerLayer=svg("g",{id:"markers"});
+ // Base map: ocean, graticule, continental-shelf glow, land, then region borders.
+ const base=svg("g",{id:"baseLayer"});
+ base.append(svg("rect",{x:0,y:0,width:BOARD_W,height:BOARD_H,fill:"url(#oceanGrad)"}));
+ const grat=svg("g",{class:"grat"});
+ for(let lon=-180;lon<=180;lon+=20){const x=lon2x(lon).toFixed(1);grat.append(svg("line",{x1:x,y1:0,x2:x,y2:BOARD_H}))}
+ for(let lat=80;lat>=-60;lat-=20){const y=lat2y(lat).toFixed(1);grat.append(svg("line",{x1:0,y1:y,x2:BOARD_W,y2:y}))}
+ base.append(grat);
+ base.append(svg("path",{d:window.WW2_LAND_PATH,class:"shelfOuter","fill-rule":"evenodd"}));
+ base.append(svg("path",{d:window.WW2_LAND_PATH,class:"shelfInner","fill-rule":"evenodd"}));
+ base.append(svg("path",{d:window.WW2_LAND_PATH,class:"landBase","fill-rule":"evenodd"}));
+ const borders=svg("g",{class:"borders"});
+ Object.entries(H).forEach(([id,h])=>{if(h[3]!=="S"&&window.WW2_REGION_PATHS[id])borders.append(svg("path",{d:window.WW2_REGION_PATHS[id],"fill-rule":"evenodd"}))});
+ base.append(borders);
  Object.entries(H).forEach(([id,h])=>{
    const p=svg("path",{d:window.WW2_REGION_PATHS[id],class:"region "+(h[3]==="S"?"sea":"land"),"fill-rule":"evenodd"});
    if(h[3]==="S"){const t=svg("path",{d:window.WW2_REGION_PATHS[id],class:"seaTint"});seaTintEl[id]=t;seaTint.appendChild(t)}
@@ -349,7 +376,7 @@ function buildBoard(){
    p.addEventListener("pointerenter",e=>{if(e.pointerType==="mouse"){hoverId=id;showTip(id)}});
    p.addEventListener("pointerleave",e=>{if(e.pointerType==="mouse"&&hoverId===id){hoverId=null;showTip(selected)}});
  });
- m.append(defs,seaTint,seaG,landG,markerLayer);
+ m.append(defs,base,seaTint,seaG,landG,markerLayer);
 }
 function draw(){
  if(!regionEl.usa)buildBoard();
